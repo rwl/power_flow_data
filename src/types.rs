@@ -16,7 +16,7 @@ pub struct CaseID {
     pub sbase: f64,
     /// PSSE revision number (if known).
     pub rev: Option<usize>,
-    /// Units of transformer ratings (see [`Transformers`](@ref)).
+    /// Units of transformer ratings (see [Transformer]).
     /// `xfrrat` ≤ 0 for MVA. `xfrrat` > 0 for current expressed as MVA.
     pub xfrrat: Option<i8>,
     /// Units of ratings of non-transformer branches (refer to Non-Transformer Branch Data).
@@ -60,8 +60,8 @@ pub enum Records {
 
 /// Each network bus to be represented in PSSE is introduced by a bus data record.
 /// The bus data record depends on the PSSE version:
-/// - See [`Buses30`](@ref) for PSSE v30 files.
-/// - See [`Buses33`](@ref) for PSSE v33 files.
+/// - See [Bus30] for PSSE v30 files.
+/// - See [Bus33] for PSSE v33 files.
 pub enum Bus {
     Bus30(Bus30),
     Bus33(Bus33),
@@ -110,7 +110,7 @@ pub struct Bus30 {
     pub area: AreaNum,
 
     /// Zone number. 1 through the maximum number of zones at the current size level.
-    /// See [`Zones`](@ref).
+    /// See [Zone].
     pub zone: ZoneNum,
 
     /// Bus voltage magnitude; entered in pu.
@@ -121,7 +121,7 @@ pub struct Bus30 {
 
     /// Owner number.
     /// 1 through the maximum number of owners at the current size level.
-    /// See [`Owners`](@ref).
+    /// See [Owner].
     pub owner: OwnerNum,
 }
 
@@ -151,12 +151,12 @@ pub struct Bus33 {
     pub area: AreaNum,
 
     /// Zone number. 1 through the maximum number of zones at the current size level.
-    /// See [`Zones`](@ref).
+    /// See [Zone].
     pub zone: ZoneNum,
 
     /// Owner number.
     /// 1 through the maximum number of owners at the current size level.
-    /// See [`Owners`](@ref).
+    /// See [Owner].
     pub owner: OwnerNum,
 
     /// Bus voltage magnitude; entered in pu.
@@ -197,7 +197,7 @@ pub struct Load {
     pub area: AreaNum,
 
     /// Zone to which the load is assigned (1 through the maximum number of zones at the current size level).
-    /// See [`Zones`](@ref).
+    /// See [Zone].
     pub zone: ZoneNum,
 
     /// Active power component of constant MVA load; entered in MW.
@@ -221,7 +221,7 @@ pub struct Load {
 
     /// Owner to which the load is assigned.
     /// 1 through the maximum number of owners at the current size level.
-    /// See [`Owners`](@ref).
+    /// See [Owner].
     pub owner: OwnerNum,
 
     /// Load scaling flag of one for a scalable load and zero for a fixed load.
@@ -244,7 +244,7 @@ pub struct Load {
 /// all of which are entered in other data categories.
 ///
 /// !!! compat "Not present in v30 files"
-///     v30 files do not have `FixedShunts`; refer to [`Buses`](@ref) and [`SwitchedShunts`](@ref).
+///     v30 files do not have `FixedShunts`; refer to [Bus] and [SwitchedShunt].
 pub struct FixedShunt {
     /// Bus number, or extended bus name enclosed in single quotes. No default.
     pub i: BusNum,
@@ -260,16 +260,16 @@ pub struct FixedShunt {
 
     /// Active component of shunt admittance to ground; entered in MW at one per unit voltage.
     /// `gl` should not include any resistive impedance load, which is entered as part of load
-    /// data (see [`Loads`](@ref). `gl` = 0.0 by default.
+    /// data (see [Load]. `gl` = 0.0 by default.
     pub gl: f64,
 
     /// Reactive component of shunt admittance to ground; entered in Mvar at one per unit voltage.
     /// `bl` should not include any reactive impedance load, which is entered as part of load data
-    /// (see [`Loads`](@ref)); line charging and line connected shunts, which are entered as part
-    /// of non-transformer branch data (see [`Branches`](@ref)); transformer magnetizing
-    /// admittance, which is entered as part of transformer data (see [`Transformers`](@ref));
+    /// (see [Load]); line charging and line connected shunts, which are entered as part
+    /// of non-transformer branch data (see [Branch]); transformer magnetizing
+    /// admittance, which is entered as part of transformer data (see [Transformer]);
     /// or switched shunt admittance, which is entered as part of switched shunt data (see
-    /// [`SwitchedShunts`](@ref). `bl` is positive for a capacitor, and negative for a reactor
+    /// [SwitchedShunt]. `bl` is positive for a capacitor, and negative for a reactor
     /// or an inductive load. `bl` = 0.0 by default.
     pub bl: f64,
 }
@@ -364,7 +364,7 @@ pub struct Generator {
     pub pb: f64,
 
     /// Owner number (1 through the maximum number of owners at the current size level).
-    /// Each machine may have up to four owners. See [`Owners`](@ref).
+    /// Each machine may have up to four owners. See [Owner].
     /// By default, `o1` is the owner to which bus `i` is assigned and `o2`, `o3`, and `o4` are
     /// zero.
     pub o1: OwnerNum,
@@ -409,11 +409,11 @@ pub enum Branch {
 /// are entered in the same data record.
 ///
 /// !!! compat "Shunts connected to buses"
-///     In PSSE v30, to represent shunts connected to buses, that shunt data should be entered in the [`Buses`](@ref) data records.
+///     In PSSE v30, to represent shunts connected to buses, that shunt data should be entered in the [Bus] data records.
 ///
 /// !!! note "Transformers"
 ///     Branches to be modeled as transformers are not specified in this data category;
-///     rather, they are specified in the [`Transformers`](@ref) data category.
+///     rather, they are specified in the [Transformer] data category.
 pub struct Branch30 {
     /// Branch "from bus" number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
@@ -483,7 +483,7 @@ pub struct Branch30 {
     pub len: f64,
 
     /// Owner number; 1 through the maximum number of owners at the current size level.
-    /// Each branch may have up to four owners. See [`Owners`](@ref).
+    /// Each branch may have up to four owners. See [Owner].
     /// By default, `o1` is the owner to which bus `i` is assigned and `o2`, `o3`, and `o4` are zero.
     pub o1: OwnerNum,
 
@@ -505,11 +505,11 @@ pub struct Branch30 {
 /// are entered in the same data record.
 ///
 /// !!! compat "Shunts connected to buses"
-///     In PSSE v33, to represent shunts connected to buses, that shunt data should be entered in [`FixedShunts`](@ref) and/or [`SwitchedShunts`](@ref) data records.
+///     In PSSE v33, to represent shunts connected to buses, that shunt data should be entered in [FixedShunt] and/or [SwitchedShunt] data records.
 ///
 /// !!! note "Transformers"
 ///     Branches to be modeled as transformers are not specified in this data category;
-///     rather, they are specified in the [`Transformers`](@ref) data category.
+///     rather, they are specified in the [Transformer] data category.
 pub struct Branch33 {
     /// Branch "from bus" number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
@@ -583,7 +583,7 @@ pub struct Branch33 {
     pub len: f64,
 
     /// Owner number; 1 through the maximum number of owners at the current size level.
-    /// Each branch may have up to four owners. See [`Owners`](@ref).
+    /// Each branch may have up to four owners. See [Owner].
     /// By default, `o1` is the owner to which bus `i` is assigned and `o2`, `o3`, and `o4` are zero.
     pub o1: OwnerNum,
 
@@ -606,7 +606,7 @@ pub struct Branch33 {
 /// That exception is a set of ancillary data, comprising transformer impedance correction records,
 /// which define the manner in which transformer impedance changes as off-nominal turns ratio or
 /// phase shift angle is adjusted. Those data records are described in Transformer Impedance
-/// Correction Records, [`ImpedanceCorrections`](@ref).
+/// Correction Records, [ImpedanceCorrection].
 ///
 /// Both two-winding and three-winding transformers are specified in the transformer data records.
 /// The data records for the two-winding transformer are common to the three-winding transformer;
@@ -686,7 +686,7 @@ pub struct Transformer {
     pub stat: bool,
 
     /// An owner number; (1 through the maximum number of owners at the current size level).
-    /// Each transformer may have up to four owners. See [`Owners`](@ref).
+    /// Each transformer may have up to four owners. See [Owner].
     /// By default, O1 is the owner to which bus "I" is assigned
     pub o1: OwnerNum,
 
@@ -870,7 +870,7 @@ pub struct Transformer {
     /// The number of a transformer impedance correction record if this transformer winding’s
     /// impedance is to be a function of either off-nominal turns ratio or phase shift angle,
     /// or 0 if no transformer impedance correction is to be applied to this transformer winding.
-    /// See [`ImpedanceCorrections`](@ref).
+    /// See [ImpedanceCorrection].
     /// `tab1` = 0 by default.
     pub tab1: isize,
 
@@ -989,7 +989,7 @@ pub struct Transformer {
     /// The number of a transformer impedance correction record if this transformer winding’s
     /// impedance is to be a function of either off-nominal turns ratio or phase shift angle,
     /// or 0 if no transformer impedance correction is to be applied to this transformer winding.
-    /// See [`ImpedanceCorrections`](@ref).
+    /// See [ImpedanceCorrection].
     /// `tab2` = 0 by default.
     /// _Ignored for a two-winding transformer._
     pub tab2: Option<isize>,
@@ -1112,7 +1112,7 @@ pub struct Transformer {
     /// The number of a transformer impedance correction record if this transformer winding’s
     /// impedance is to be a function of either off-nominal turns ratio or phase shift angle,
     /// or 0 if no transformer impedance correction is to be applied to this transformer winding.
-    /// See [`ImpedanceCorrections`](@ref).
+    /// See [ImpedanceCorrection].
     /// `tab3` = 0 by default.
     /// _Ignored for a two-winding transformer._
     pub tab3: Option<isize>,
@@ -1164,8 +1164,8 @@ pub struct AreaInterchange {
 }
 
 /// The TwoTerminalDCLines data record depends on the PSSE version:
-/// - See [`TwoTerminalDCLines30`](@ref) for PSSE v30 files.
-/// - See [`TwoTerminalDCLines33`](@ref) for PSSE v33 files.
+/// - See [TwoTerminalDCLine30] for PSSE v30 files.
+/// - See [TwoTerminalDCLine33] for PSSE v33 files.
 pub enum TwoTerminalDCLine {
     TwoTerminalDCLine30(TwoTerminalDCLine30),
     TwoTerminalDCLine33(TwoTerminalDCLine33),
@@ -1431,7 +1431,7 @@ pub struct VSCDCLine {
     pub rdc: f64,
 
     /// An owner number; (1 through the maximum number of owners at the current size level).
-    /// Each VSC DC line may have up to four owners. See [`Owners`](@ref).
+    /// Each VSC DC line may have up to four owners. See [Owner].
     /// By default, `01` is 1, and O2, O3 and O4 are zero.
     pub o1: OwnerNum,
 
@@ -1442,7 +1442,7 @@ pub struct VSCDCLine {
 
     // TODO: are o2, f2, o3, f3, o4, f4 always present?
     /// An owner number; (1 through the maximum number of owners at the current size level).
-    /// See [`Owners`](@ref).
+    /// See [Owner].
     /// By default, `o2` is zero.
     pub o2: OwnerNum,
 
@@ -1611,8 +1611,8 @@ pub struct VSCDCLine {
 }
 
 /// The SwitchedShunts data record depends on the PSSE version:
-/// - See [`SwitchedShunts30`](@ref) for PSSE v30 files.
-/// - See [`SwitchedShunts33`](@ref) for PSSE v33 files.
+/// - See [SwitchedShunt30] for PSSE v30 files.
+/// - See [SwitchedShunt33] for PSSE v33 files.
 pub enum SwitchedShunt {
     SwitchedShunt30(SwitchedShunt30),
     SwitchedShunt33(SwitchedShunt33),
@@ -1807,8 +1807,8 @@ pub struct ImpedanceCorrection {
 // `Network`, with a `DCLineID` (`CaseID`) and 3 `Records` (`ACConverters, `DCBuses`, `DCLinks`)
 
 /// The DCLineID data record depends on the PSSE version:
-/// - See [`DCLineID30`](@ref) for PSSE v30 files.
-/// - See [`DCLineID33`](@ref) for PSSE v33 files.
+/// - See [DCLineID30] for PSSE v30 files.
+/// - See [DCLineID33] for PSSE v33 files.
 pub enum DCLineID {
     DCLineID30(DCLineID30),
     DCLineID33(DCLineID33),
@@ -2007,7 +2007,7 @@ pub struct DCLink {
 //   as DC line number 1 along with a multi-terminal line numbered 1.
 // * Multi-terminal lines should have at least three converter terminals;
 //   conventional DC lines consisting of two terminals should be modeled as two-terminal lines
-//   (see [`TwoTerminalDCLines`](@ref).
+//   (see [TwoTerminalDCLine].
 // * AC converter buses may be type one, two, or three buses. Generators, loads, fixed and
 //   switched shunt elements, other DC line converters, and FACTS device sending ends are
 //   permitted at converter buses.
@@ -2032,11 +2032,11 @@ pub struct DCLink {
 //   are used in Zonal reporting activities.
 
 /// Each multi-terminal DC line record defines the number of converters, number of DC buses and
-/// number of DC links as well as related bus numbers and control mode (see [`DCLineID`](@ref)),
+/// number of DC links as well as related bus numbers and control mode (see [DCLineID]),
 /// then data for:
-/// * each converter (see [`ACConverters`](@ref))
-/// * each DC bus (see [`DCBuses`](@ref))
-/// * each DC link (see [`DCLinks`](@ref))
+/// * each converter (see [ACConverter])
+/// * each DC bus (see [DCBus])
+/// * each DC link (see [DCLink])
 pub struct MultiTerminalDCLine {
     /// High-level data about this line.
     pub line_id: DCLineID,
@@ -2049,8 +2049,8 @@ pub struct MultiTerminalDCLine {
 }
 
 /// The MultiSectionLineGroups data record depends on the PSSE version:
-/// - See [`MultiSectionLineGroups30`](@ref) for PSSE v30 files.
-/// - See [`MultiSectionLineGroups33`](@ref) for PSSE v33 files.
+/// - See [MultiSectionLineGroup30] for PSSE v30 files.
+/// - See [MultiSectionLineGroup33] for PSSE v33 files.
 pub enum MultiSectionLineGroup {
     MultiSectionLineGroup30(MultiSectionLineGroup30),
     MultiSectionLineGroup33(MultiSectionLineGroup33),
@@ -2141,7 +2141,7 @@ pub struct MultiSectionLineGroup33 {
 
 /// All buses (AC and DC) and loads can be assigned to reside in a zone of the network.
 /// To enable this facility, each zone should be assigned a name and number.
-/// Specifically, the zone number is entered as part of the data records for the [`Buses`](@ref) and [`Loads`](@ref).
+/// Specifically, the zone number is entered as part of the data records for the [buses](Bus) and [loads](Load).
 /// The use of zones enables the user to develop reports and to check results on the basis of zones and,
 /// consequently be highly specific when reporting and interpreting analytical results.
 pub struct Zone {
@@ -2155,10 +2155,10 @@ pub struct Zone {
     pub zoname: ArrayString<15>,
 }
 
-/// Using PSS/E, the user has the capability to identify in which area each [bus](@ref Buses) or [load](@ref Loads) resides.
+/// Using PSS/E, the user has the capability to identify in which area each [bus](Bus) or [load](Load) resides.
 /// Further, the user can schedule active power transfers between pairs of areas.
 ///
-/// See [`AreaInterchanges`](@ref) for desired net interchange.
+/// See [AreaInterchange] for desired net interchange.
 pub struct InterAreaTransfer {
     /// "From area" number (1 through the maximum number of areas at the current size level).
     pub arfrom: AreaNum,
@@ -2332,36 +2332,24 @@ pub struct FACTSDevice33 {
 /// Similarly, a `Network` stores the data from each category in its own dedicated structure.
 ///
 /// Currently supported are:
-/// 1. [`CaseID`](@ref)
-/// 1. [`Buses`](@ref)
-/// 1. [`Loads`](@ref)
-/// 1. [`FixedShunts`](@ref)
-/// 1. [`Generators`](@ref)
-/// 1. [`Branches`](@ref)
-/// 1. [`Transformers`](@ref)
-/// 1. [`AreaInterchanges`](@ref)
-/// 1. [`TwoTerminalDCLines`](@ref)
-/// 1. [`VSCDCLines`](@ref)
-/// 1. [`SwitchedShunts`](@ref)
-/// 1. [`ImpedanceCorrections`](@ref)
-/// 1. [`MultiTerminalDCLines`](@ref)
-/// 1. [`MultiSectionLineGroups`](@ref)
-/// 1. [`Zones`](@ref)
-/// 1. [`InterAreaTransfers`](@ref)
-/// 1. [`Owners`](@ref)
-/// 1. [`FACTSDevices`](@ref)
-///
-/// `CaseID` data is a single row (in the Tables.jl-sense).
-/// You can access it like `network.caseid` and interact with it like a `NamedTuple`,
-/// or even convert it to a `NamedTuple` with `NamedTuple(caseid)`.
-///
-/// All other records (buses, loads, etc.) can be accessed also via the fields, for example
-/// `network.buses`, and each is returned as lightweight table structure (again, in the Tables.jl-sense).
-/// That is, all structures implement the Tables.jl interface, so can be passed to any valid
-/// sink, such as a `DataFrame` like `DataFrame(network.buses)`.
-///
-/// For more info on working with tables see [Tables.jl](https://tables.juliadata.org/), and for
-/// common table operations see [TableOperations.jl](https://github.com/JuliaData/TableOperations.jl).
+/// 1. [CaseID]
+/// 1. [Bus]
+/// 1. [Load]
+/// 1. [FixedShunt]
+/// 1. [Generator]
+/// 1. [Branch]
+/// 1. [Transformer]
+/// 1. [AreaInterchange]
+/// 1. [TwoTerminalDCLine]
+/// 1. [VSCDCLine]
+/// 1. [SwitchedShunt]
+/// 1. [ImpedanceCorrection]
+/// 1. [MultiTerminalDCLine]
+/// 1. [MultiSectionLineGroup]
+/// 1. [Zone]
+/// 1. [InterAreaTransfer]
+/// 1. [Owner]
+/// 1. [FACTSDevice]
 pub struct Network {
     /// Version of the PSS/E data version given or detected when parsing.
     pub version: i8,
