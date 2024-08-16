@@ -1191,6 +1191,52 @@ pub struct AreaInterchange {
 /// The TwoTerminalDCLines data record depends on the PSSE version:
 /// - See [TwoTerminalDCLine30] for PSSE v30 files.
 /// - See [TwoTerminalDCLine33] for PSSE v33 files.
+#[derive(EnumCommonFields)]
+#[common_field(mdc: i8)]
+#[common_field(rdc: f64)]
+#[common_field(setvl: f64)]
+#[common_field(vschd: f64)]
+#[common_field(vcmod: f64)]
+#[common_field(rcomp: f64)]
+#[common_field(delti: f64)]
+#[common_field(meter: str)]
+#[common_field(dcvmin: f64)]
+#[common_field(cccitmx: i32)]
+#[common_field(cccacc: f64)]
+#[common_field(ipr: BusNum)]
+#[common_field(nbr: i32)]
+#[common_field(alfmx: f64)]
+#[common_field(alfmn: f64)]
+#[common_field(rcr: f64)]
+#[common_field(xcr: f64)]
+#[common_field(ebasr: f64)]
+#[common_field(trr: f64)]
+#[common_field(tapr: f64)]
+#[common_field(tmxr: f64)]
+#[common_field(tmnr: f64)]
+#[common_field(stpr: f64)]
+#[common_field(icr: BusNum)]
+#[common_field(ifr: BusNum)]
+#[common_field(itr: BusNum)]
+#[common_field(idr: str)]
+#[common_field(xcapr: f64)]
+#[common_field(ipi: BusNum)]
+#[common_field(nbi: i32)]
+#[common_field(gammx: f64)]
+#[common_field(gammn: f64)]
+#[common_field(rci: f64)]
+#[common_field(xci: f64)]
+#[common_field(ebasi: f64)]
+#[common_field(tri: f64)]
+#[common_field(tapi: f64)]
+#[common_field(tmxi: f64)]
+#[common_field(tmni: f64)]
+#[common_field(stpi: f64)]
+#[common_field(ici: BusNum)]
+#[common_field(ifi: BusNum)]
+#[common_field(iti: BusNum)]
+#[common_field(idi: str)]
+#[common_field(xcapi: f64)]
 pub enum TwoTerminalDCLine {
     TwoTerminalDCLine30(TwoTerminalDCLine30),
     TwoTerminalDCLine33(TwoTerminalDCLine33),
@@ -1430,6 +1476,204 @@ pub struct TwoTerminalDCLine33 {
     /// numbers and special characters. name must be enclosed in single or double quotes if it contains any
     /// blanks or special characters. No default allowed.
     pub name: ArrayString<15>,
+
+    /// Control mode:
+    /// * 0 for blocked,
+    /// * 1 for power,
+    /// * 2 for current.
+    /// `mdc` = 0 by default.
+    pub mdc: i8, // 0, 1, or 2
+
+    /// The DC line resistance; entered in ohms.
+    /// No default.
+    pub rdc: f64,
+
+    /// Current (amps) or power (MW) demand.
+    /// When `mdc` is 1, a positive value of `setvl` specifies desired power at the rectifier
+    /// and a negative value specifies desired inverter power.
+    /// No default.
+    pub setvl: f64,
+
+    /// Scheduled compounded DC voltage; entered in kV.
+    /// No default.
+    pub vschd: f64,
+
+    /// Mode switch DC voltage; entered in kV.
+    /// When the inverter DC voltage falls below this value and the line is in power control mode
+    /// (i.e. `mdc` = 1), the line switches to current control mode with a desired current
+    /// corresponding to the desired power at scheduled DC voltage.
+    /// `vcmod` = 0.0 by default.
+    pub vcmod: f64,
+
+    /// Compounding resistance; entered in ohms.
+    /// Gamma and/or TAPI is used to attempt to hold the compounded voltage (``vdci + dccur ∗ rcomp``) at `vschd`.
+    /// * To control the inverter end DC voltage VDCI, set `rcomp` to zero;
+    /// * to control the rectifier end DC voltage VDCR, set `rcomp` to the DC line resistance, `rdc`;
+    /// * otherwise, set `rcomp` to the appropriate fraction of `rdc`.
+    /// `rcomp` = 0.0 by default.
+    pub rcomp: f64,
+
+    /// Margin entered in per unit of desired DC power or current.
+    /// This is the fraction by which the order is reduced when alpha is at its minimum (`alfmn`)
+    /// and the inverter is controlling the line current.
+    /// `delti` = 0.0 by default.
+    pub delti: f64,
+
+    /// Metered end code of either "R" (for rectifier) or "I" (for inverter).
+    /// `meter` = "I" by default.
+    pub meter: ArrayString<1>, // I or R
+
+    /// Minimum compounded DC voltage; entered in kV.
+    /// Only used in constant gamma operation (i.e. when `gammx` = `gammn`) when TAPI is held constant
+    /// and an AC transformer tap is adjusted to control DC voltage
+    /// (i.e. when `ifi`, `iti`, and `idi` specify a two-winding transformer).
+    /// `dcvmin` = 0.0 by default.
+    pub dcvmin: f64,
+
+    /// Iteration limit for capacitor commutated two-terminal DC line Newton solution procedure.
+    /// `cccitmx` = 20 by default.
+    pub cccitmx: i32,
+
+    /// Acceleration factor for capacitor commutated two-terminal DC line Newton solution procedure.
+    /// `cccacc` = 1.0 by default.
+    pub cccacc: f64,
+
+    // Second line: defines rectifier end data quantities and control parameters //
+    /// Rectifier converter bus number, or extended bus name enclosed in single quotes.
+    /// No default.
+    pub ipr: BusNum,
+
+    /// Number of bridges in series (rectifier).
+    /// No default.
+    pub nbr: i32,
+
+    /// Nominal maximum rectifier firing angle; entered in degrees.
+    /// No default.
+    pub alfmx: f64,
+
+    /// Minimum steady-state rectifier firing angle; entered in degrees.
+    /// No default.
+    pub alfmn: f64,
+
+    /// Rectifier commutating transformer resistance per bridge; entered in ohms.
+    /// No default allowed.
+    pub rcr: f64,
+
+    /// Rectifier commutating transformer reactance per bridge; entered in ohms.
+    /// No default allowed.
+    pub xcr: f64,
+
+    /// Rectifier primary base AC voltage; entered in kV.
+    /// No default.
+    pub ebasr: f64,
+
+    /// Rectifier transformer ratio.
+    /// `trr` = 1.0 by default.
+    pub trr: f64,
+
+    /// Rectifier tap setting.
+    /// `tapr` = 1.0 by default.
+    pub tapr: f64,
+
+    /// Maximum rectifier tap setting.
+    /// `tmxr` = 1.5 by default.
+    pub tmxr: f64,
+
+    /// Minimum rectifier tap setting.
+    /// `tmnr` = 0.51 by default.
+    pub tmnr: f64,
+
+    /// Rectifier tap step; must be positive.
+    /// `stpr` = 0.00625 by default.
+    pub stpr: f64,
+
+    /// Rectifier firing angle measuring bus number, or extended bus name enclosed in single quotes.
+    /// The firing angle and angle limits used inside the DC model are adjusted by the difference
+    /// between the phase angles at this bus and the AC/DC interface (i.e. the converter bus, `ipr`).
+    /// `icr` = 0 by default.
+    pub icr: BusNum,
+
+    /// Winding one side "from bus" number, or extended bus name enclosed in single quotes,
+    /// of a two-winding transformer.
+    /// `ifr` = 0 by default.
+    pub ifr: BusNum,
+
+    /// Winding two side "to bus" number, or extended bus name enclosed in single quotes,
+    /// of a two-winding transformer.
+    /// `itr` = 0 by default.
+    pub itr: BusNum,
+
+    /// Circuit identifier; the branch described by `ifr`, `itr`, and `idr` must have been entered
+    /// as a two-winding transformer; an AC transformer may control at most only one DC converter.
+    /// `idr` = '1' by default.
+    ///
+    /// If no branch is specified, `tapr` is adjusted to keep alpha within limits;
+    /// otherwise, `tapr` is held fixed and this transformer’s tap ratio is adjusted.
+    /// The adjustment logic assumes that the rectifier converter bus is on the winding two side
+    /// of the transformer. The limits `tmxr` and `tmnr` specified here are used; except for the
+    /// transformer control mode flag (`cod` of `Transformers`), the AC tap adjustment data is ignored.
+    pub idr: ArrayString<3>,
+
+    /// Commutating capacitor reactance magnitude per bridge; entered in ohms.
+    /// `xcapr` = 0.0 by default.
+    pub xcapr: f64,
+
+    // Third line: contains the inverter quantities corresponding to the rectifier quantities
+    // specified on the second line above.  The significant difference is that the control angle
+    // `ALFA` for the rectifier is replaced by the control angle `GAMMA` for the inverter.
+    /// Inverter converter bus number, or extended bus name enclosed in single quotes.
+    pub ipi: BusNum,
+
+    /// Number of bridges in series (inverter).
+    pub nbi: i32,
+
+    /// Nominal maximum inverter firing angle; entered in degrees.
+    pub gammx: f64,
+
+    /// Minimum steady-state inverter firing angle; entered in degrees.
+    pub gammn: f64,
+
+    /// Inverter commutating transformer resistance per bridge; entered in ohms.
+    pub rci: f64,
+
+    /// Inverter commutating transformer reactance per bridge; entered in ohms.
+    pub xci: f64,
+
+    /// Inverter primary base AC voltage; entered in kV.
+    pub ebasi: f64,
+
+    /// Inverter transformer ratio.
+    pub tri: f64,
+
+    /// Inverter tap setting.
+    pub tapi: f64,
+
+    /// Maximum inverter tap setting.
+    pub tmxi: f64,
+
+    /// Minimum inverter tap setting.
+    pub tmni: f64,
+
+    /// Inverter tap step; must be positive.
+    pub stpi: f64,
+
+    /// Inverter firing angle measuring bus number, or extended bus name enclosed in single quotes.
+    pub ici: BusNum,
+
+    /// Winding one side "from bus" number, or extended bus name enclosed in single quotes,
+    /// of a two-winding transformer.
+    pub ifi: BusNum,
+
+    /// Winding two side "to bus" number, or extended bus name enclosed in single quotes,
+    /// of a two-winding transformer.
+    pub iti: BusNum,
+
+    /// Circuit identifier; the branch described by `ifr`, `itr`, and `idr` must have been entered
+    /// as a two-winding transformer; an AC transformer may control at most only one DC converter.
+    pub idi: ArrayString<3>,
+
+    /// Commutating capacitor reactance magnitude per bridge; entered in ohms.
+    pub xcapi: f64,
 }
 
 /// Voltage source converter (VSC) DC lines.
