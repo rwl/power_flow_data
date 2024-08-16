@@ -8,3 +8,4 @@ edition = "2021"
 
 [dependencies]
 arrayvec = "0.7"
+enum_common_fields = "0.7"

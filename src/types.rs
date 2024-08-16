@@ -1,4 +1,5 @@
 use arrayvec::ArrayString;
+use enum_common_fields::EnumCommonFields;
 
 // TODO: should the various bits of free text / comments / timestamps be in this struct?
 // Data can look like:
@@ -62,6 +63,16 @@ pub enum Records {
 /// The bus data record depends on the PSSE version:
 /// - See [Bus30] for PSSE v30 files.
 /// - See [Bus33] for PSSE v33 files.
+#[derive(EnumCommonFields)]
+#[common_field(i: BusNum)]
+#[common_field(name: str)]
+#[common_field(basekv: f64)]
+#[common_field(ide: i8)]
+#[common_field(area: AreaNum)]
+#[common_field(zone: ZoneNum)]
+#[common_field(vm: f64)]
+#[common_field(va: f64)]
+#[common_field(owner: OwnerNum)]
 pub enum Bus {
     Bus30(Bus30),
     Bus33(Bus33),
@@ -87,12 +98,12 @@ pub struct Bus30 {
     pub basekv: f64,
 
     /// Bus type code:
-    /// 1 - load bus or other bus without any generator boundary condition.
-    /// 2 - generator or plant bus either regulating voltage or with a fixed reactive power (Mvar).
-    /// A generator that reaches its reactive power limit will no longer control voltage but rather hold reactive power at its limit.
-    /// 3 - swing bus or slack bus.
-    /// It has no power or reactive limits and regulates voltage at a fixed reference angle.
-    /// 4 - disconnected or isolated bus.
+    /// 1. load bus or other bus without any generator boundary condition.
+    /// 2. generator or plant bus either regulating voltage or with a fixed reactive power (Mvar).
+    ///    A generator that reaches its reactive power limit will no longer control voltage but rather hold reactive power at its limit.
+    /// 3. swing bus or slack bus.
+    ///    It has no power or reactive limits and regulates voltage at a fixed reference angle.
+    /// 4. disconnected or isolated bus.
     pub ide: i8, // 1, 2, 3 or 4
 
     /// Active component of shunt admittance to ground; entered in MW at one per unit voltage.
@@ -398,6 +409,22 @@ pub struct Generator {
     pub wpf: Option<f64>,
 }
 
+#[derive(EnumCommonFields)]
+#[common_field(i: BusNum)]
+#[common_field(j: BusNum)]
+#[common_field(ckt: str)]
+#[common_field(r: f64)]
+#[common_field(x: f64)]
+#[common_field(b: f64)]
+#[common_field(rate_a: f64)]
+#[common_field(rate_b: f64)]
+#[common_field(rate_c: f64)]
+#[common_field(gi: f64)]
+#[common_field(bi: f64)]
+#[common_field(gj: f64)]
+#[common_field(bj: f64)]
+#[common_field(st: bool)]
+#[common_field(len: f64)]
 pub enum Branch {
     Branch30(Branch30),
     Branch33(Branch33),
@@ -477,8 +504,6 @@ pub struct Branch30 {
     /// ST = 1 by default.
     pub st: bool,
 
-    // $met_doc
-    // $met_col
     /// Line length; entered in user-selected units. LEN = 0.0 by default.
     pub len: f64,
 
@@ -683,7 +708,7 @@ pub struct Transformer {
 
     /// The initial transformer status, where 1 designates in-service and 0 designates out-of-service.
     /// `stat` = 1 by default.
-    pub stat: bool,
+    pub stat: i8,
 
     /// An owner number; (1 through the maximum number of owners at the current size level).
     /// Each transformer may have up to four owners. See [Owner].
@@ -1613,6 +1638,16 @@ pub struct VSCDCLine {
 /// The SwitchedShunts data record depends on the PSSE version:
 /// - See [SwitchedShunt30] for PSSE v30 files.
 /// - See [SwitchedShunt33] for PSSE v33 files.
+#[derive(EnumCommonFields)]
+#[common_field(i: BusNum)]
+#[common_field(modsw: i8)]
+#[common_field(vswhi: f64)]
+#[common_field(vswlo: f64)]
+#[common_field(swrem: BusNum)]
+#[common_field(rmpct: f64)]
+#[common_field(rmidnt: str)]
+#[common_field(binit: f64)]
+#[common_field(n1: i32)]
 pub enum SwitchedShunt {
     SwitchedShunt30(SwitchedShunt30),
     SwitchedShunt33(SwitchedShunt33),
@@ -1643,10 +1678,6 @@ pub struct SwitchedShunt30 {
     /// `modsw` = 1 by default.
     pub modsw: i8, // 0, 1, 2, 3, 4, or 5
 
-    // $adjm_doc
-    // $adjm_col
-    // $stat_doc
-    // $stat_col
     /// When `modsw` is 1 or 2, the controlled voltage upper limit; entered in pu.
     /// When `modsw` is 3, 4 or 5, the controlled reactive power range upper limit; entered in pu
     /// of the total reactive power range of the controlled voltage controlling device.
@@ -1730,6 +1761,20 @@ pub struct SwitchedShunt30 {
 /// eight blocks of admittance, each one of which consists of up to nine steps of the specified
 /// block admittance.
 pub struct SwitchedShunt33 {
+    /// Bus number, or extended bus name enclosed in single quotes.
+    pub i: BusNum,
+
+    /// Control mode:
+    /// * 0 - fixed
+    /// * 1 - discrete adjustment, controlling voltage locally or at bus `swrem`
+    /// * 2 - continuous adjustment, controlling voltage locally or at bus `swrem`
+    /// * 3 - discrete adjustment, controlling reactive power output of the plant at bus `swrem`
+    /// * 4 - discrete adjustment, controlling reactive power output of the VSC DC line converter
+    /// at bus `swrem` of the VSC DC line whose name is specified as `rmidnt`
+    /// * 5 - discrete adjustment, controlling admittance setting of the switched shunt at bus `swrem`
+    /// `modsw` = 1 by default.
+    pub modsw: i8, // 0, 1, 2, 3, 4, or 5
+
     /// Adjustment method:
     /// * 0 - steps and blocks are switched on in input order, and off in reverse input order;
     ///   this adjustment method was the only method available prior to PSS®E-32.0.
@@ -1741,6 +1786,77 @@ pub struct SwitchedShunt33 {
     /// Initial switched shunt status of one for in-service and zero for out-of-service.
     /// `stat` = 1 by default.
     pub stat: bool,
+
+    /// When `modsw` is 1 or 2, the controlled voltage upper limit; entered in pu.
+    /// When `modsw` is 3, 4 or 5, the controlled reactive power range upper limit; entered in pu
+    /// of the total reactive power range of the controlled voltage controlling device.
+    /// `vswhi` is not used when `modsw` is 0.
+    /// `vswhi` = 1.0 by default.
+    pub vswhi: f64,
+
+    /// When `modsw` is 1 or 2, the controlled voltage lower limit; entered in pu.
+    /// When `modsw` is 3, 4 or 5, the controlled reactive power range lower limit; entered in pu
+    /// of the total reactive power range of the controlled voltage controlling device.
+    /// `vswlo` is not used when `modsw` is 0.
+    /// `vswlo` = 1.0 by default.
+    pub vswlo: f64,
+
+    /// Bus number, or extended bus name enclosed in single quotes, of the bus whose voltage or
+    /// connected equipment reactive power output is controlled by this switched shunt.
+    /// * When `modsw` is 1 or 2, `swrem` is entered as 0 if the switched shunt is to regulate its own voltage;
+    /// otherwise, `swrem` specifies the remote type one or two bus whose voltage is to be regulated by this switched shunt.
+    /// * When `modsw` is 3, `swrem` specifies the type two or three bus whose plant reactive power output is to be regulated by this switched shunt.
+    /// Set `swrem` to "I" if the switched shunt and the plant which it controls are connected to the same bus.
+    /// * When `modsw` is 4, `swrem` specifies the converter bus of a VSC dc line whose converter reactive power output is to be regulated by this switched shunt.
+    /// Set `swrem` to "I" if the switched shunt and the VSC dc line converter which it controls are connected to the same bus.
+    /// * When `modsw` is 5, `swrem` specifies the remote bus to which the switched shunt whose admittance setting is to be regulated by this switched shunt is connected.
+    /// * `swrem` is not used when `modsw` is 0.
+    /// `swrem` = 0 by default.
+    pub swrem: BusNum,
+
+    /// Percent of the total Mvar required to hold the voltage at the bus controlled by bus `I`
+    /// that are to be contributed by this switched shunt; `rmpct` must be positive.
+    ///
+    /// `rmpct` is needed only if `swrem` specifies a valid remote bus and there is more than one
+    /// local or remote voltage controlling device (plant, switched shunt, FACTS device shunt element,
+    /// or VSC DC line converter) controlling the voltage at bus `swrem` to a setpoint, or `swrem` is
+    /// zero but bus I is the controlled bus, local or remote, of one or more other setpoint mode
+    /// voltage controlling devices. Only used if `modsw` = 1 or 2.
+    /// `rmpct` = 100.0 by default.
+    pub rmpct: f64,
+
+    /// When `modsw` is 4, the name of the VSC DC line whose converter bus is specified in `swrem`.
+    /// `rmidnt` is not used for other values of `modsw`.
+    /// `rmidnt` is a blank name by default.
+    pub rmidnt: ArrayString<15>,
+
+    /// Initial switched shunt admittance; entered in Mvar at unity voltage.
+    /// `binit` = 0.0 by default.
+    pub binit: f64,
+
+    /// Number of steps for block i.
+    /// The first zero value of N_i or B_i is interpreted as the end of the switched shunt blocks
+    /// for bus I.
+    /// `ni` = 0 by default.
+    pub n1: i32,
+
+    /// Admittance increment for each of N_i steps in block i; entered in Mvar at unity voltage.
+    /// `bi` = 0.0 by default.
+    pub b1: f64,
+    pub n2: i32,
+    pub b2: f64,
+    pub n3: i32,
+    pub b3: f64,
+    pub n4: i32,
+    pub b4: f64,
+    pub n5: i32,
+    pub b5: f64,
+    pub n6: i32,
+    pub b6: f64,
+    pub n7: i32,
+    pub b7: f64,
+    pub n8: i32,
+    pub b8: f64,
 }
 
 /// Transformer impedance corrections are used to model a change of transformer impedance
