@@ -193,6 +193,7 @@ pub struct Bus33 {
 /// data record. If multiple loads are to be represented at a bus, they must be individually
 /// identified in a load data record for the bus with a different load identifier.
 /// Each load at a bus can be a mixture of loads with different characteristics.
+#[derive(PartialEq, Debug, Default)]
 pub struct Load {
     /// Buses number, or extended buses name enclosed in single quotes.
     pub i: BusNum,
