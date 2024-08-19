@@ -8,6 +8,7 @@ use enum_common_fields::EnumCommonFields;
 //    FULL COPY OF ETC.
 
 /// Case identification data.
+#[derive(PartialEq, Debug, Default)]
 pub struct CaseID {
     /// IC Change code:
     /// 0 - base case (i.e., clear the working case before adding data to it).
@@ -137,6 +138,7 @@ pub struct Bus30 {
 }
 
 /// Network bus data record (in PSSE v33 format).
+#[derive(PartialEq, Debug, Default)]
 pub struct Bus33 {
     /// Bus number (1 to 999997).
     pub i: BusNum,

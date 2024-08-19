@@ -1,11 +1,19 @@
 use arrayvec::ArrayString;
 use nom::bytes::complete::{tag, take_until, take_while};
-use nom::character::complete::{char, digit1, space0};
+use nom::character::complete::{char, digit1, newline, space0, space1};
 use nom::combinator::{map, map_res, opt, recognize};
-use nom::sequence::{delimited, pair, preceded, tuple};
+use nom::multi::separated_list1;
+use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
 use nom::IResult;
+use std::str::FromStr;
 
-use crate::{AreaNum, BusNum, Load, OwnerNum, ZoneNum};
+use crate::{AreaNum, Bus33, BusNum, CaseID, Load, Network, OwnerNum, ZoneNum};
+
+pub trait RawRecord {
+    fn parse_raw(input: &str) -> IResult<&str, Self>
+    where
+        Self: Sized;
+}
 
 fn _parse_integer(input: &str) -> IResult<&str, i32> {
     map_res(recognize(pair(opt(char('-')), digit1)), |s: &str| {
@@ -13,8 +21,12 @@ fn _parse_integer(input: &str) -> IResult<&str, i32> {
     })(input)
 }
 
-fn _parse_i8(input: &str) -> IResult<&str, i8> {
+fn parse_i8(input: &str) -> IResult<&str, i8> {
     map_res(digit1, |s: &str| s.parse::<i8>())(input)
+}
+
+fn parse_int<I: FromStr>(input: &str) -> IResult<&str, I> {
+    map_res(digit1, |s: &str| s.parse::<I>())(input)
 }
 
 fn parse_bus_num(input: &str) -> IResult<&str, BusNum> {
@@ -104,8 +116,130 @@ fn _parse_comment(input: &str) -> IResult<&str, &str> {
     delimited(tag("/*"), take_until("*/"), tag("*/"))(input)
 }
 
+fn parse_zero_line(input: &str) -> IResult<&str, ()> {
+    let (input, _) = tuple((char('0'), opt(space1), newline))(input)?;
+    Ok((input, ()))
+}
+
+//  0,    100.00, 33, 0, 0, 60.00       / May 16, 2017 17:17:11; Simulator Version 20 Beta; BuildDate 2017_5_15
+pub(crate) fn parse_raw_case_id(input: &str) -> IResult<&str, CaseID> {
+    let (input, _) = space0(input)?;
+
+    let (input, ic) = parse_i8(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, sbase) = parse_f64(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, rev) = opt(parse_int::<usize>)(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, xfrrat) = opt(parse_i8)(input)?;
+    let (input, _) = opt(char(','))(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, nxfrat) = opt(parse_i8)(input)?;
+    let (input, _) = opt(char(','))(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, basfrq) = opt(parse_f64)(input)?;
+
+    let (input, _) = opt(separated_pair(char('/'), space0, take_until("\n")))(input)?;
+
+    let case_id = CaseID {
+        ic,
+        sbase,
+        rev,
+        xfrrat,
+        nxfrat,
+        basfrq,
+    };
+
+    Ok((input, case_id))
+}
+
+// 111,'STBC      ',161.00,1,    0.00,    0.00,227,   1,1.09814,  -8.327,  1 /* [STBC   1   ] */
+pub(crate) fn parse_raw_bus(input: &str) -> IResult<&str, Bus33> {
+    let (input, _) = space0(input)?;
+
+    let (input, i) = parse_bus_num(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, name) = parse_array_string(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, basekv) = parse_f64(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, ide) = parse_i8(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, area) = parse_area_num(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, zone) = parse_zone_num(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, owner) = parse_owner_num(input)?;
+    let (input, _) = opt(char(','))(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, vm) = parse_f64(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, va) = parse_f64(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, nvhi) = parse_f64(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, nvlo) = parse_f64(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, evhi) = parse_f64(input)?;
+    let (input, _) = char(',')(input)?;
+    let (input, _) = space0(input)?;
+
+    let (input, evlo) = parse_f64(input)?;
+
+    let bus = Bus33 {
+        i,
+        name,
+        basekv,
+        ide,
+        area,
+        zone,
+        owner,
+        vm,
+        va,
+        nvhi,
+        nvlo,
+        evhi,
+        evlo,
+    };
+
+    Ok((input, bus))
+}
+
+fn parse_raw_buses(input: &str) -> IResult<&str, Vec<Bus33>> {
+    separated_list1(newline, parse_raw_bus)(input)
+}
+
 // 111,'G1',1,227,   1,   -0.004,   -0.000,   -0.003,   -0.000,    0.000,   -0.000,  1 /* [STBC   G1                   ] */
-fn parse_raw_load(input: &str) -> IResult<&str, Load> {
+pub(crate) fn parse_raw_load(input: &str) -> IResult<&str, Load> {
     let (input, i) = parse_bus_num(input)?;
     let (input, _) = char(',')(input)?;
     let (input, _) = space0(input)?;
@@ -181,30 +315,47 @@ fn parse_raw_load(input: &str) -> IResult<&str, Load> {
 
     Ok((input, load))
 }
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    #[test]
-    fn test_parse_raw_load() {
-        let input = "111,'G1',1,227,1,-0.004,-0.000,-0.003,-0.000,0.000,-0.000,1";
-        // let input = "111, 'G1', 1, 227, 1, -0.004, -0.000, -0.003, -0.000, 0.000, -0.000, 1";
-        let expected = Load {
-            i: 111,
-            id: ArrayString::from("G1").unwrap(),
-            status: true,
-            area: 227,
-            zone: 1,
-            pl: -0.004,
-            ql: -0.0,
-            ip: -0.003,
-            iq: -0.0,
-            yp: 0.0,
-            yq: -0.0,
-            owner: 1,
-            scale: None,
-            intrpt: None,
-        };
-        assert_eq!(parse_raw_load(input).unwrap().1, expected);
-    }
+pub(crate) fn parse_raw_loads(input: &str) -> IResult<&str, Vec<Load>> {
+    separated_list1(newline, parse_raw_load)(input)
+}
+
+pub fn parse_raw_case(input: &str) -> IResult<&str, Network> {
+    let (input, buses) = parse_raw_buses(input)?;
+    let (input, _) = parse_zero_line(input)?;
+    let (input, loads) = parse_raw_loads(input)?;
+
+    let network = Network {
+        version: 0,
+        caseid: CaseID {
+            ic: 0,
+            sbase: 0.0,
+            rev: None,
+            xfrrat: None,
+            nxfrat: None,
+            basfrq: None,
+        },
+        buses: buses
+            .into_iter()
+            .map(|bus| crate::Bus::Bus33(bus))
+            .collect(),
+        loads,
+        fixed_shunts: None,
+        generators: vec![],
+        branches: vec![],
+        transformers: vec![],
+        area_interchanges: vec![],
+        two_terminal_dc: vec![],
+        vsc_dc: vec![],
+        switched_shunts: vec![],
+        impedance_corrections: vec![],
+        multi_terminal_dc: vec![],
+        multi_section_lines: vec![],
+        zones: vec![],
+        area_transfers: vec![],
+        owners: vec![],
+        facts: vec![],
+    };
+
+    Ok((input, network))
 }
