@@ -1,0 +1,14 @@
+[package]
+name = "power_flow_data_derive"
+version = "0.1.0"
+description = "Procedural macro for parsing RAW files"
+edition = "2018"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+quote = "1"
+proc-macro2 = "1.0"
+syn = { version = "2.0", features = ["full", "extra-traits"] }
+

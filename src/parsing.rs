@@ -9,12 +9,6 @@ use std::str::FromStr;
 
 use crate::{AreaNum, Bus33, BusNum, CaseID, Load, Network, OwnerNum, ZoneNum};
 
-pub trait RawRecord {
-    fn parse_raw(input: &str) -> IResult<&str, Self>
-    where
-        Self: Sized;
-}
-
 fn _parse_integer(input: &str) -> IResult<&str, i32> {
     map_res(recognize(pair(opt(char('-')), digit1)), |s: &str| {
         s.parse::<i32>()

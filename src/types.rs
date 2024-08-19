@@ -1,6 +1,8 @@
 use arrayvec::ArrayString;
 use enum_common_fields::EnumCommonFields;
 
+use crate::traits::RawRecord;
+
 // TODO: should the various bits of free text / comments / timestamps be in this struct?
 // Data can look like:
 // 0,   100.00          / PSS/E-30.3    WED, SEP 15 2021  21:04
@@ -86,6 +88,7 @@ pub enum Bus {
 /// represent a shunt capacitor or a shunt reactor (both with or without a real component) or a
 /// shunt resistor. It must not represent line connected admittance, loads, line charging or
 /// transformer magnetizing impedance, all of which are entered in other data categories.
+#[derive(Default, RawRecord)]
 pub struct Bus30 {
     /// Bus number (1 to 999997).
     pub i: BusNum,
