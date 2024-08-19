@@ -2,6 +2,7 @@
 name = "power_flow_data_derive"
 version = "0.1.0"
 description = "Procedural macro for parsing RAW files"
+license = "MIT"
 edition = "2018"
 
 [lib]
