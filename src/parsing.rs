@@ -7,7 +7,7 @@ use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
 use nom::IResult;
 use std::str::FromStr;
 
-use crate::{AreaNum, Bus33, BusNum, CaseID, Load, Network, OwnerNum, ZoneNum};
+use crate::{AreaNum, Bus, BusNum, CaseID, Load, Network, OwnerNum, ZoneNum};
 
 fn _parse_integer(input: &str) -> IResult<&str, i32> {
     map_res(recognize(pair(opt(char('-')), digit1)), |s: &str| {
@@ -156,7 +156,7 @@ pub(crate) fn parse_raw_case_id(input: &str) -> IResult<&str, CaseID> {
 }
 
 // 111,'STBC      ',161.00,1,    0.00,    0.00,227,   1,1.09814,  -8.327,  1 /* [STBC   1   ] */
-pub(crate) fn parse_raw_bus(input: &str) -> IResult<&str, Bus33> {
+pub(crate) fn parse_raw_bus(input: &str) -> IResult<&str, Bus> {
     let (input, _) = space0(input)?;
 
     let (input, i) = parse_bus_num(input)?;
@@ -209,7 +209,7 @@ pub(crate) fn parse_raw_bus(input: &str) -> IResult<&str, Bus33> {
 
     let (input, evlo) = parse_f64(input)?;
 
-    let bus = Bus33 {
+    let bus = Bus {
         i,
         name,
         basekv,
@@ -228,7 +228,7 @@ pub(crate) fn parse_raw_bus(input: &str) -> IResult<&str, Bus33> {
     Ok((input, bus))
 }
 
-fn parse_raw_buses(input: &str) -> IResult<&str, Vec<Bus33>> {
+fn parse_raw_buses(input: &str) -> IResult<&str, Vec<Bus>> {
     separated_list1(newline, parse_raw_bus)(input)
 }
 
@@ -315,26 +315,17 @@ pub(crate) fn parse_raw_loads(input: &str) -> IResult<&str, Vec<Load>> {
 }
 
 pub fn parse_raw_case(input: &str) -> IResult<&str, Network> {
+    let (input, caseid) = parse_raw_case_id(input)?;
     let (input, buses) = parse_raw_buses(input)?;
     let (input, _) = parse_zero_line(input)?;
     let (input, loads) = parse_raw_loads(input)?;
 
     let network = Network {
         version: 0,
-        caseid: CaseID {
-            ic: 0,
-            sbase: 0.0,
-            rev: None,
-            xfrrat: None,
-            nxfrat: None,
-            basfrq: None,
-        },
-        buses: buses
-            .into_iter()
-            .map(|bus| crate::Bus::Bus33(bus))
-            .collect(),
+        caseid,
+        buses,
         loads,
-        fixed_shunts: None,
+        fixed_shunts: vec![],
         generators: vec![],
         branches: vec![],
         transformers: vec![],

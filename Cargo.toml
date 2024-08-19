@@ -11,5 +11,4 @@ path = "./lib/power_flow_data_derive"
 
 [dependencies]
 arrayvec = "0.7"
-enum_common_fields = "0.7"
 nom = "7.1"

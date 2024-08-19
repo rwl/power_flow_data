@@ -1,5 +1,4 @@
 use arrayvec::ArrayString;
-use enum_common_fields::EnumCommonFields;
 
 use crate::traits::RawRecord;
 
@@ -62,87 +61,9 @@ pub enum Records {
     FACTSDevice(FACTSDevice),
 }
 
-/// Each network bus to be represented in PSSE is introduced by a bus data record.
-/// The bus data record depends on the PSSE version:
-/// - See [Bus30] for PSSE v30 files.
-/// - See [Bus33] for PSSE v33 files.
-#[derive(EnumCommonFields)]
-#[common_field(i: BusNum)]
-#[common_field(name: str)]
-#[common_field(basekv: f64)]
-#[common_field(ide: i8)]
-#[common_field(area: AreaNum)]
-#[common_field(zone: ZoneNum)]
-#[common_field(vm: f64)]
-#[common_field(va: f64)]
-#[common_field(owner: OwnerNum)]
-pub enum Bus {
-    Bus30(Bus30),
-    Bus33(Bus33),
-}
-
-/// Network bus data record (in PSSE v30 format).
-///
-/// Each bus data record includes not only data for the basic bus properties but also includes
-/// information on an optionally connected shunt admittance to ground. That admittance can
-/// represent a shunt capacitor or a shunt reactor (both with or without a real component) or a
-/// shunt resistor. It must not represent line connected admittance, loads, line charging or
-/// transformer magnetizing impedance, all of which are entered in other data categories.
-#[derive(Default, RawRecord)]
-pub struct Bus30 {
-    /// Bus number (1 to 999997).
-    pub i: BusNum,
-
-    /// Alphanumeric identifier assigned to bus "I".
-    /// The name may be up to twelve characters and must be enclosed in single quotes.
-    /// NAME may contain any combination of blanks, uppercase letters, numbers and special characters, but the first character must not be a minus sign.
-    pub name: ArrayString<15>,
-
-    /// Bus base voltage; entered in kV.
-    pub basekv: f64,
-
-    /// Bus type code:
-    /// 1. load bus or other bus without any generator boundary condition.
-    /// 2. generator or plant bus either regulating voltage or with a fixed reactive power (Mvar).
-    ///    A generator that reaches its reactive power limit will no longer control voltage but rather hold reactive power at its limit.
-    /// 3. swing bus or slack bus.
-    ///    It has no power or reactive limits and regulates voltage at a fixed reference angle.
-    /// 4. disconnected or isolated bus.
-    pub ide: i8, // 1, 2, 3 or 4
-
-    /// Active component of shunt admittance to ground; entered in MW at one per unit voltage.
-    /// GL should not include any resistive admittance load, which is entered as part of load data.
-    pub gl: f64,
-
-    /// Reactive component of shunt admittance to ground; entered in Mvar at one per unit voltage.
-    /// BL should not include any reactive impedance load, which is entered as part of load data;
-    /// line charging and line connected shunts, which are entered as part of non-transformer branch data;
-    /// or transformer magnetizing admittance, which is entered as part of transformer data.
-    /// BL is positive for a capacitor, and negative for a reactor or an inductive load.
-    pub bl: f64,
-
-    /// Area number. 1 through the maximum number of areas at the current size level.
-    pub area: AreaNum,
-
-    /// Zone number. 1 through the maximum number of zones at the current size level.
-    /// See [Zone].
-    pub zone: ZoneNum,
-
-    /// Bus voltage magnitude; entered in pu.
-    pub vm: f64,
-
-    /// Bus voltage phase angle; entered in degrees.
-    pub va: f64,
-
-    /// Owner number.
-    /// 1 through the maximum number of owners at the current size level.
-    /// See [Owner].
-    pub owner: OwnerNum,
-}
-
 /// Network bus data record (in PSSE v33 format).
-#[derive(PartialEq, Debug, Default)]
-pub struct Bus33 {
+#[derive(PartialEq, Debug, Default, RawRecord)]
+pub struct Bus {
     /// Bus number (1 to 999997).
     pub i: BusNum,
 
@@ -415,121 +336,6 @@ pub struct Generator {
     pub wpf: Option<f64>,
 }
 
-#[derive(EnumCommonFields)]
-#[common_field(i: BusNum)]
-#[common_field(j: BusNum)]
-#[common_field(ckt: str)]
-#[common_field(r: f64)]
-#[common_field(x: f64)]
-#[common_field(b: f64)]
-#[common_field(rate_a: f64)]
-#[common_field(rate_b: f64)]
-#[common_field(rate_c: f64)]
-#[common_field(gi: f64)]
-#[common_field(bi: f64)]
-#[common_field(gj: f64)]
-#[common_field(bj: f64)]
-#[common_field(st: bool)]
-#[common_field(len: f64)]
-pub enum Branch {
-    Branch30(Branch30),
-    Branch33(Branch33),
-}
-
-/// In PSS/E, the basic transmission line model is an Equivalent Pi connected between network buses.
-///
-/// Data for shunt equipment units, such as reactors, which are connected to and switched with the line,
-/// are entered in the same data record.
-///
-/// !!! compat "Shunts connected to buses"
-///     In PSSE v30, to represent shunts connected to buses, that shunt data should be entered in the [Bus] data records.
-///
-/// !!! note "Transformers"
-///     Branches to be modeled as transformers are not specified in this data category;
-///     rather, they are specified in the [Transformer] data category.
-pub struct Branch30 {
-    /// Branch "from bus" number, or extended bus name enclosed in single quotes.
-    pub i: BusNum,
-
-    /// Branch "to bus" number, or extended bus name enclosed in single quotes.
-    /// "J" is entered as a negative number, or with a minus sign before the first character of the extended bus name,
-    /// to designate it as the metered end; otherwise, bus "I" is assumed to be the metered end.
-    pub j: BusNum,
-
-    /// One- or two-character uppercase nonblank alphanumeric branch circuit identifier;
-    /// the first character of CKT must not be an ampersand "&".
-    /// It is recommended that single circuit branches be designated as having the circuit identifier '1'.
-    /// CKT = '1' by default.
-    pub ckt: ArrayString<3>,
-
-    /// Branch resistance; entered in pu. A value of R must be entered for each branch.
-    pub r: f64,
-
-    /// Branch reactance; entered in pu. A nonzero value of X must be entered for each branch.
-    pub x: f64,
-
-    /// Total branch charging susceptance; entered in pu. B = 0.0 by default.
-    pub b: f64,
-
-    /// First loading rating; entered in MVA.
-    /// If RATEA is set to 0.0, the default value, this branch will not be included in any examination of circuit loading.
-    ///
-    /// Ratings are entered as:
-    /// ``MVA_{rated} = sqrt(3) × E_{base} × I_{rated} × 10^{-6}`` where:
-    /// - ``E_{base}`` is the base line-to-line voltage in volts of the buses to which the terminal of the branch is connected.
-    /// - ``I_{rated}`` is the branch rated phase current in amperes.
-    pub rate_a: f64,
-
-    /// Second loading rating; entered in MVA. RATEB = 0.0 by default.
-    pub rate_b: f64,
-
-    /// Third loading rating; entered in MVA. RATEC = 0.0 by default.
-    pub rate_c: f64,
-
-    /// Complex admittance of the line shunt at the bus "I" end of the branch; entered in pu.
-    /// BI is negative for a line connected reactor and positive for line connected capacitor.
-    /// GI + jBI = 0.0 by default.
-    pub gi: f64,
-
-    /// Complex admittance of the line shunt at the bus "I" end of the branch; entered in pu.
-    /// BI is negative for a line connected reactor and positive for line connected capacitor.
-    /// GI + jBI = 0.0 by default.
-    pub bi: f64,
-
-    /// Complex admittance of the line shunt at the bus "J" end of the branch; entered in pu.
-    /// BJ is negative for a line connected reactor and positive for line connected capacitor.
-    /// GJ + jBJ = 0.0 by default.
-    pub gj: f64,
-
-    /// Complex admittance of the line shunt at the bus "J" end of the branch; entered in pu.
-    /// BJ is negative for a line connected reactor and positive for line connected capacitor.
-    /// GJ + jBJ = 0.0 by default.
-    pub bj: f64,
-
-    /// Initial branch status where 1 designates in-service and 0 designates out-of-service.
-    /// ST = 1 by default.
-    pub st: bool,
-
-    /// Line length; entered in user-selected units. LEN = 0.0 by default.
-    pub len: f64,
-
-    /// Owner number; 1 through the maximum number of owners at the current size level.
-    /// Each branch may have up to four owners. See [Owner].
-    /// By default, `o1` is the owner to which bus `i` is assigned and `o2`, `o3`, and `o4` are zero.
-    pub o1: OwnerNum,
-
-    /// Fraction of total ownership assigned to owner ``O_i``; each ``F_i`` must be positive.
-    /// The ``fi` values are normalized such that they sum to 1.0 before they are placed in the working case.
-    /// By default, each `fi` is 1.0.
-    pub f1: f64,
-    pub o2: Option<OwnerNum>,
-    pub f2: Option<f64>,
-    pub o3: Option<OwnerNum>,
-    pub f3: Option<f64>,
-    pub o4: Option<OwnerNum>,
-    pub f4: Option<f64>,
-}
-
 /// In PSS/E, the basic transmission line model is an Equivalent Pi connected between network buses.
 ///
 /// Data for shunt equipment units, such as reactors, which are connected to and switched with the line,
@@ -541,7 +347,7 @@ pub struct Branch30 {
 /// !!! note "Transformers"
 ///     Branches to be modeled as transformers are not specified in this data category;
 ///     rather, they are specified in the [Transformer] data category.
-pub struct Branch33 {
+pub struct Branch {
     /// Branch "from bus" number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
 
@@ -1194,60 +1000,6 @@ pub struct AreaInterchange {
     pub arname: ArrayString<15>,
 }
 
-/// The TwoTerminalDCLines data record depends on the PSSE version:
-/// - See [TwoTerminalDCLine30] for PSSE v30 files.
-/// - See [TwoTerminalDCLine33] for PSSE v33 files.
-#[derive(EnumCommonFields)]
-#[common_field(mdc: i8)]
-#[common_field(rdc: f64)]
-#[common_field(setvl: f64)]
-#[common_field(vschd: f64)]
-#[common_field(vcmod: f64)]
-#[common_field(rcomp: f64)]
-#[common_field(delti: f64)]
-#[common_field(meter: str)]
-#[common_field(dcvmin: f64)]
-#[common_field(cccitmx: i32)]
-#[common_field(cccacc: f64)]
-#[common_field(ipr: BusNum)]
-#[common_field(nbr: i32)]
-#[common_field(alfmx: f64)]
-#[common_field(alfmn: f64)]
-#[common_field(rcr: f64)]
-#[common_field(xcr: f64)]
-#[common_field(ebasr: f64)]
-#[common_field(trr: f64)]
-#[common_field(tapr: f64)]
-#[common_field(tmxr: f64)]
-#[common_field(tmnr: f64)]
-#[common_field(stpr: f64)]
-#[common_field(icr: BusNum)]
-#[common_field(ifr: BusNum)]
-#[common_field(itr: BusNum)]
-#[common_field(idr: str)]
-#[common_field(xcapr: f64)]
-#[common_field(ipi: BusNum)]
-#[common_field(nbi: i32)]
-#[common_field(gammx: f64)]
-#[common_field(gammn: f64)]
-#[common_field(rci: f64)]
-#[common_field(xci: f64)]
-#[common_field(ebasi: f64)]
-#[common_field(tri: f64)]
-#[common_field(tapi: f64)]
-#[common_field(tmxi: f64)]
-#[common_field(tmni: f64)]
-#[common_field(stpi: f64)]
-#[common_field(ici: BusNum)]
-#[common_field(ifi: BusNum)]
-#[common_field(iti: BusNum)]
-#[common_field(idi: str)]
-#[common_field(xcapi: f64)]
-pub enum TwoTerminalDCLine {
-    TwoTerminalDCLine30(TwoTerminalDCLine30),
-    TwoTerminalDCLine33(TwoTerminalDCLine33),
-}
-
 /// The two-terminal DC transmission line model is used to simulate either a point-to-point
 /// system with rectifier and inverter separated by a bipolar or mono-polar transmission system
 /// or a Back-to-Back system where the rectifier and inverter are physically located at the same
@@ -1260,222 +1012,7 @@ pub enum TwoTerminalDCLine {
 ///
 /// The steady-state model comprising this data enables not only power flow analysis but also
 /// establishes the initial steady-state for dynamic analysis.
-pub struct TwoTerminalDCLine30 {
-    /// The DC line number.
-    pub i: LineNum,
-
-    /// Control mode:
-    /// * 0 for blocked,
-    /// * 1 for power,
-    /// * 2 for current.
-    /// `mdc` = 0 by default.
-    pub mdc: i8, // 0, 1, or 2
-
-    /// The DC line resistance; entered in ohms.
-    /// No default.
-    pub rdc: f64,
-
-    /// Current (amps) or power (MW) demand.
-    /// When `mdc` is 1, a positive value of `setvl` specifies desired power at the rectifier
-    /// and a negative value specifies desired inverter power.
-    /// No default.
-    pub setvl: f64,
-
-    /// Scheduled compounded DC voltage; entered in kV.
-    /// No default.
-    pub vschd: f64,
-
-    /// Mode switch DC voltage; entered in kV.
-    /// When the inverter DC voltage falls below this value and the line is in power control mode
-    /// (i.e. `mdc` = 1), the line switches to current control mode with a desired current
-    /// corresponding to the desired power at scheduled DC voltage.
-    /// `vcmod` = 0.0 by default.
-    pub vcmod: f64,
-
-    /// Compounding resistance; entered in ohms.
-    /// Gamma and/or TAPI is used to attempt to hold the compounded voltage (``vdci + dccur ∗ rcomp``) at `vschd`.
-    /// * To control the inverter end DC voltage VDCI, set `rcomp` to zero;
-    /// * to control the rectifier end DC voltage VDCR, set `rcomp` to the DC line resistance, `rdc`;
-    /// * otherwise, set `rcomp` to the appropriate fraction of `rdc`.
-    /// `rcomp` = 0.0 by default.
-    pub rcomp: f64,
-
-    /// Margin entered in per unit of desired DC power or current.
-    /// This is the fraction by which the order is reduced when alpha is at its minimum (`alfmn`)
-    /// and the inverter is controlling the line current.
-    /// `delti` = 0.0 by default.
-    pub delti: f64,
-
-    /// Metered end code of either "R" (for rectifier) or "I" (for inverter).
-    /// `meter` = "I" by default.
-    pub meter: ArrayString<1>, // I or R
-
-    /// Minimum compounded DC voltage; entered in kV.
-    /// Only used in constant gamma operation (i.e. when `gammx` = `gammn`) when TAPI is held constant
-    /// and an AC transformer tap is adjusted to control DC voltage
-    /// (i.e. when `ifi`, `iti`, and `idi` specify a two-winding transformer).
-    /// `dcvmin` = 0.0 by default.
-    pub dcvmin: f64,
-
-    /// Iteration limit for capacitor commutated two-terminal DC line Newton solution procedure.
-    /// `cccitmx` = 20 by default.
-    pub cccitmx: i32,
-
-    /// Acceleration factor for capacitor commutated two-terminal DC line Newton solution procedure.
-    /// `cccacc` = 1.0 by default.
-    pub cccacc: f64,
-
-    // Second line: defines rectifier end data quantities and control parameters //
-    /// Rectifier converter bus number, or extended bus name enclosed in single quotes.
-    /// No default.
-    pub ipr: BusNum,
-
-    /// Number of bridges in series (rectifier).
-    /// No default.
-    pub nbr: i32,
-
-    /// Nominal maximum rectifier firing angle; entered in degrees.
-    /// No default.
-    pub alfmx: f64,
-
-    /// Minimum steady-state rectifier firing angle; entered in degrees.
-    /// No default.
-    pub alfmn: f64,
-
-    /// Rectifier commutating transformer resistance per bridge; entered in ohms.
-    /// No default allowed.
-    pub rcr: f64,
-
-    /// Rectifier commutating transformer reactance per bridge; entered in ohms.
-    /// No default allowed.
-    pub xcr: f64,
-
-    /// Rectifier primary base AC voltage; entered in kV.
-    /// No default.
-    pub ebasr: f64,
-
-    /// Rectifier transformer ratio.
-    /// `trr` = 1.0 by default.
-    pub trr: f64,
-
-    /// Rectifier tap setting.
-    /// `tapr` = 1.0 by default.
-    pub tapr: f64,
-
-    /// Maximum rectifier tap setting.
-    /// `tmxr` = 1.5 by default.
-    pub tmxr: f64,
-
-    /// Minimum rectifier tap setting.
-    /// `tmnr` = 0.51 by default.
-    pub tmnr: f64,
-
-    /// Rectifier tap step; must be positive.
-    /// `stpr` = 0.00625 by default.
-    pub stpr: f64,
-
-    /// Rectifier firing angle measuring bus number, or extended bus name enclosed in single quotes.
-    /// The firing angle and angle limits used inside the DC model are adjusted by the difference
-    /// between the phase angles at this bus and the AC/DC interface (i.e. the converter bus, `ipr`).
-    /// `icr` = 0 by default.
-    pub icr: BusNum,
-
-    /// Winding one side "from bus" number, or extended bus name enclosed in single quotes,
-    /// of a two-winding transformer.
-    /// `ifr` = 0 by default.
-    pub ifr: BusNum,
-
-    /// Winding two side "to bus" number, or extended bus name enclosed in single quotes,
-    /// of a two-winding transformer.
-    /// `itr` = 0 by default.
-    pub itr: BusNum,
-
-    /// Circuit identifier; the branch described by `ifr`, `itr`, and `idr` must have been entered
-    /// as a two-winding transformer; an AC transformer may control at most only one DC converter.
-    /// `idr` = '1' by default.
-    ///
-    /// If no branch is specified, `tapr` is adjusted to keep alpha within limits;
-    /// otherwise, `tapr` is held fixed and this transformer’s tap ratio is adjusted.
-    /// The adjustment logic assumes that the rectifier converter bus is on the winding two side
-    /// of the transformer. The limits `tmxr` and `tmnr` specified here are used; except for the
-    /// transformer control mode flag (`cod` of `Transformers`), the AC tap adjustment data is ignored.
-    pub idr: ArrayString<3>,
-
-    /// Commutating capacitor reactance magnitude per bridge; entered in ohms.
-    /// `xcapr` = 0.0 by default.
-    pub xcapr: f64,
-
-    // Third line: contains the inverter quantities corresponding to the rectifier quantities
-    // specified on the second line above.  The significant difference is that the control angle
-    // `ALFA` for the rectifier is replaced by the control angle `GAMMA` for the inverter.
-    /// Inverter converter bus number, or extended bus name enclosed in single quotes.
-    pub ipi: BusNum,
-
-    /// Number of bridges in series (inverter).
-    pub nbi: i32,
-
-    /// Nominal maximum inverter firing angle; entered in degrees.
-    pub gammx: f64,
-
-    /// Minimum steady-state inverter firing angle; entered in degrees.
-    pub gammn: f64,
-
-    /// Inverter commutating transformer resistance per bridge; entered in ohms.
-    pub rci: f64,
-
-    /// Inverter commutating transformer reactance per bridge; entered in ohms.
-    pub xci: f64,
-
-    /// Inverter primary base AC voltage; entered in kV.
-    pub ebasi: f64,
-
-    /// Inverter transformer ratio.
-    pub tri: f64,
-
-    /// Inverter tap setting.
-    pub tapi: f64,
-
-    /// Maximum inverter tap setting.
-    pub tmxi: f64,
-
-    /// Minimum inverter tap setting.
-    pub tmni: f64,
-
-    /// Inverter tap step; must be positive.
-    pub stpi: f64,
-
-    /// Inverter firing angle measuring bus number, or extended bus name enclosed in single quotes.
-    pub ici: BusNum,
-
-    /// Winding one side "from bus" number, or extended bus name enclosed in single quotes,
-    /// of a two-winding transformer.
-    pub ifi: BusNum,
-
-    /// Winding two side "to bus" number, or extended bus name enclosed in single quotes,
-    /// of a two-winding transformer.
-    pub iti: BusNum,
-
-    /// Circuit identifier; the branch described by `ifr`, `itr`, and `idr` must have been entered
-    /// as a two-winding transformer; an AC transformer may control at most only one DC converter.
-    pub idi: ArrayString<3>,
-
-    /// Commutating capacitor reactance magnitude per bridge; entered in ohms.
-    pub xcapi: f64,
-}
-
-/// The two-terminal DC transmission line model is used to simulate either a point-to-point
-/// system with rectifier and inverter separated by a bipolar or mono-polar transmission system
-/// or a Back-to-Back system where the rectifier and inverter are physically located at the same
-/// site and separated only by a short bus-bar.
-///
-/// The data requirements fall into three groups:
-/// * Control parameters and set-points
-/// * Converter transformers
-/// * The DC line characteristics
-///
-/// The steady-state model comprising this data enables not only power flow analysis but also
-/// establishes the initial steady-state for dynamic analysis.
-pub struct TwoTerminalDCLine33 {
+pub struct TwoTerminalDCLine {
     /// The non-blank alphanumeric identifier assigned to this DC line.
     /// Each two-terminal DC line must have a unique `name.
     /// `name` may be up to twelve characters and may contain any combination of blanks, uppercase letters,
@@ -1885,24 +1422,6 @@ pub struct VSCDCLine {
     pub rmpct2: f64,
 }
 
-/// The SwitchedShunts data record depends on the PSSE version:
-/// - See [SwitchedShunt30] for PSSE v30 files.
-/// - See [SwitchedShunt33] for PSSE v33 files.
-#[derive(EnumCommonFields)]
-#[common_field(i: BusNum)]
-#[common_field(modsw: i8)]
-#[common_field(vswhi: f64)]
-#[common_field(vswlo: f64)]
-#[common_field(swrem: BusNum)]
-#[common_field(rmpct: f64)]
-#[common_field(rmidnt: str)]
-#[common_field(binit: f64)]
-#[common_field(n1: i32)]
-pub enum SwitchedShunt {
-    SwitchedShunt30(SwitchedShunt30),
-    SwitchedShunt33(SwitchedShunt33),
-}
-
 /// Represents switched shunt devices, in the form of capacitors and/or reactors on a network bus.
 ///
 /// The switched shunt elements at a bus may consist entirely of blocks of shunt reactors
@@ -1913,104 +1432,7 @@ pub enum SwitchedShunt {
 /// a switched shunt data record specified for it. The switched shunts are represented with up to
 /// eight blocks of admittance, each one of which consists of up to nine steps of the specified
 /// block admittance.
-pub struct SwitchedShunt30 {
-    /// Bus number, or extended bus name enclosed in single quotes.
-    pub i: BusNum,
-
-    /// Control mode:
-    /// * 0 - fixed
-    /// * 1 - discrete adjustment, controlling voltage locally or at bus `swrem`
-    /// * 2 - continuous adjustment, controlling voltage locally or at bus `swrem`
-    /// * 3 - discrete adjustment, controlling reactive power output of the plant at bus `swrem`
-    /// * 4 - discrete adjustment, controlling reactive power output of the VSC DC line converter
-    /// at bus `swrem` of the VSC DC line whose name is specified as `rmidnt`
-    /// * 5 - discrete adjustment, controlling admittance setting of the switched shunt at bus `swrem`
-    /// `modsw` = 1 by default.
-    pub modsw: i8, // 0, 1, 2, 3, 4, or 5
-
-    /// When `modsw` is 1 or 2, the controlled voltage upper limit; entered in pu.
-    /// When `modsw` is 3, 4 or 5, the controlled reactive power range upper limit; entered in pu
-    /// of the total reactive power range of the controlled voltage controlling device.
-    /// `vswhi` is not used when `modsw` is 0.
-    /// `vswhi` = 1.0 by default.
-    pub vswhi: f64,
-
-    /// When `modsw` is 1 or 2, the controlled voltage lower limit; entered in pu.
-    /// When `modsw` is 3, 4 or 5, the controlled reactive power range lower limit; entered in pu
-    /// of the total reactive power range of the controlled voltage controlling device.
-    /// `vswlo` is not used when `modsw` is 0.
-    /// `vswlo` = 1.0 by default.
-    pub vswlo: f64,
-
-    /// Bus number, or extended bus name enclosed in single quotes, of the bus whose voltage or
-    /// connected equipment reactive power output is controlled by this switched shunt.
-    /// * When `modsw` is 1 or 2, `swrem` is entered as 0 if the switched shunt is to regulate its own voltage;
-    /// otherwise, `swrem` specifies the remote type one or two bus whose voltage is to be regulated by this switched shunt.
-    /// * When `modsw` is 3, `swrem` specifies the type two or three bus whose plant reactive power output is to be regulated by this switched shunt.
-    /// Set `swrem` to "I" if the switched shunt and the plant which it controls are connected to the same bus.
-    /// * When `modsw` is 4, `swrem` specifies the converter bus of a VSC dc line whose converter reactive power output is to be regulated by this switched shunt.
-    /// Set `swrem` to "I" if the switched shunt and the VSC dc line converter which it controls are connected to the same bus.
-    /// * When `modsw` is 5, `swrem` specifies the remote bus to which the switched shunt whose admittance setting is to be regulated by this switched shunt is connected.
-    /// * `swrem` is not used when `modsw` is 0.
-    /// `swrem` = 0 by default.
-    pub swrem: BusNum,
-
-    /// Percent of the total Mvar required to hold the voltage at the bus controlled by bus `I`
-    /// that are to be contributed by this switched shunt; `rmpct` must be positive.
-    ///
-    /// `rmpct` is needed only if `swrem` specifies a valid remote bus and there is more than one
-    /// local or remote voltage controlling device (plant, switched shunt, FACTS device shunt element,
-    /// or VSC DC line converter) controlling the voltage at bus `swrem` to a setpoint, or `swrem` is
-    /// zero but bus I is the controlled bus, local or remote, of one or more other setpoint mode
-    /// voltage controlling devices. Only used if `modsw` = 1 or 2.
-    /// `rmpct` = 100.0 by default.
-    pub rmpct: f64,
-
-    /// When `modsw` is 4, the name of the VSC DC line whose converter bus is specified in `swrem`.
-    /// `rmidnt` is not used for other values of `modsw`.
-    /// `rmidnt` is a blank name by default.
-    pub rmidnt: ArrayString<15>,
-
-    /// Initial switched shunt admittance; entered in Mvar at unity voltage.
-    /// `binit` = 0.0 by default.
-    pub binit: f64,
-
-    /// Number of steps for block i.
-    /// The first zero value of N_i or B_i is interpreted as the end of the switched shunt blocks
-    /// for bus I.
-    /// `ni` = 0 by default.
-    pub n1: i32,
-
-    /// Admittance increment for each of N_i steps in block i; entered in Mvar at unity voltage.
-    /// `bi` = 0.0 by default.
-    pub b1: f64,
-    pub n2: i32,
-    pub b2: f64,
-    pub n3: i32,
-    pub b3: f64,
-    pub n4: i32,
-    pub b4: f64,
-    pub n5: i32,
-    pub b5: f64,
-    pub n6: i32,
-    pub b6: f64,
-    pub n7: i32,
-    pub b7: f64,
-    pub n8: i32,
-    pub b8: f64,
-}
-
-/// Represents switched shunt devices, in the form of capacitors and/or reactors on a network bus.
-///
-/// The switched shunt elements at a bus may consist entirely of blocks of shunt reactors
-/// (each Bi is a negative quantity) or entirely of blocks of capacitor banks
-/// (each Bi is a positive quantity). Any bus can have both switched capacitors and reactors.
-///
-/// Each network bus to be represented in PSS/E with switched shunt admittance devices must have
-/// a switched shunt data record specified for it. The switched shunts are represented with up to
-/// eight blocks of admittance, each one of which consists of up to nine steps of the specified
-/// block admittance.
-pub struct SwitchedShunt33 {
+pub struct SwitchedShunt {
     /// Bus number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
 
@@ -2172,17 +1594,13 @@ pub struct ImpedanceCorrection {
 // dedicated `MultiTerminalDCLine` object. And each `MultiTerminalDCLine` is a bit like a
 // `Network`, with a `DCLineID` (`CaseID`) and 3 `Records` (`ACConverters, `DCBuses`, `DCLinks`)
 
-/// The DCLineID data record depends on the PSSE version:
-/// - See [DCLineID30] for PSSE v30 files.
-/// - See [DCLineID33] for PSSE v33 files.
-pub enum DCLineID {
-    DCLineID30(DCLineID30),
-    DCLineID33(DCLineID33),
-}
-
-pub struct DCLineID30 {
-    /// Multi-terminal DC line number.
-    pub i: LineNum,
+pub struct DCLineID {
+    /// The non-blank alphanumeric identifier assigned to this DC line.
+    /// Each multi-terminal DC line must have a unique `name.
+    /// `name` may be up to twelve characters and may contain any combination of blanks, uppercase letters,
+    /// numbers and special characters. name must be enclosed in single or double quotes if it contains any
+    /// blanks or special characters. No default allowed.
+    pub name: ArrayString<15>,
 
     /// Number of AC converter station buses in multi-terminal DC line `i`. No default.
     pub nconv: i8,
@@ -2218,15 +1636,6 @@ pub struct DCLineID30 {
     /// negative pole inverter. If the negative pole is not being modeled, `vconvn` must be
     /// specified as zero. `vconvn` = 0 by default.
     pub vconvn: BusNum,
-}
-
-pub struct DCLineID33 {
-    /// The non-blank alphanumeric identifier assigned to this DC line.
-    /// Each multi-terminal DC line must have a unique `name.
-    /// `name` may be up to twelve characters and may contain any combination of blanks, uppercase letters,
-    /// numbers and special characters. name must be enclosed in single or double quotes if it contains any
-    /// blanks or special characters. No default allowed.
-    pub name: ArrayString<15>,
 }
 
 pub struct ACConverter {
@@ -2414,14 +1823,6 @@ pub struct MultiTerminalDCLine {
     pub link: DCLink,
 }
 
-/// The MultiSectionLineGroups data record depends on the PSSE version:
-/// - See [MultiSectionLineGroup30] for PSSE v30 files.
-/// - See [MultiSectionLineGroup33] for PSSE v33 files.
-pub enum MultiSectionLineGroup {
-    MultiSectionLineGroup30(MultiSectionLineGroup30),
-    MultiSectionLineGroup33(MultiSectionLineGroup33),
-}
-
 /// Multi-section line group.
 ///
 /// Transmission lines commonly have a series of sections with varying physical structures.
@@ -2466,7 +1867,7 @@ pub enum MultiSectionLineGroup {
 /// A FACTS control device may not be connected to a multi-section line dummy bus.
 /// * The status of line sections and type codes of dummy buses are set such that the multi-section
 /// line is treated as a single entity with regards to its service status.
-pub struct MultiSectionLineGroup30 {
+pub struct MultiSectionLineGroup {
     /// "From bus" number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
 
@@ -2481,8 +1882,12 @@ pub struct MultiSectionLineGroup30 {
     /// `id` = "&1" by default.
     pub id: ArrayString<3>,
 
-    // $met_doc
-    // $met_col
+    /// Metered end flag.
+    /// * ≤1 to designate bus `i` as the metered end.
+    /// * ≥2 to designate bus `j` as the metered end.
+    /// `met` = 1 by default.
+    pub met: i8,
+
     /// Bus numbers, or extended bus names enclosed in single quotes, of the dummy buses
     /// connected by the branches that comprise this multi-section line grouping.
     /// No defaults.
@@ -2495,14 +1900,6 @@ pub struct MultiSectionLineGroup30 {
     pub dum7: Option<BusNum>,
     pub dum8: Option<BusNum>,
     pub dum9: Option<BusNum>,
-}
-
-pub struct MultiSectionLineGroup33 {
-    /// Metered end flag.
-    /// * ≤1 to designate bus `i` as the metered end.
-    /// * ≥2 to designate bus `j` as the metered end.
-    /// `met` = 1 by default.
-    pub met: i8,
 }
 
 /// All buses (AC and DC) and loads can be assigned to reside in a zone of the network.
@@ -2557,11 +1954,6 @@ pub struct Owner {
     pub owname: ArrayString<15>,
 }
 
-pub enum FACTSDevice {
-    FACTSDevice30(FACTSDevice30),
-    FACTSDevice33(FACTSDevice33),
-}
-
 /// Flexible AC Transmission System devices.
 ///
 /// There is a multiplicity of Flexible AC Transmission System devices currently available
@@ -2569,9 +1961,13 @@ pub enum FACTSDevice {
 /// the Static Synchronous Series Compensator (SSSC), combined devices such as the
 /// Unified Power Flow Controller (UPFC) and the Interline Power Flow Controllers (IPFC),
 /// of which the latter are parallel series devices.
-pub struct FACTSDevice30 {
-    /// FACTS device number.
-    pub n: i16,
+pub struct FACTSDevice {
+    /// The non-blank alphanumeric identifier assigned to this FACTS device.
+    /// Each FACTS device must have a unique `name.
+    /// `name` may be up to twelve characters and may contain any combination of blanks, uppercase letters,
+    /// numbers and special characters. name must be enclosed in single or double quotes if it contains any
+    /// blanks or special characters. No default allowed.
+    pub name: ArrayString<15>,
 
     /// Sending end bus number, or extended bus name enclosed in single quotes.
     /// No default.
@@ -2665,15 +2061,6 @@ pub struct FACTSDevice30 {
     /// when `mode` is 4, 7 or 8: 0 for sending end voltage, 1 for series current.
     /// `vsref` = 0 by default.
     pub vsref: i8, // 0 or 1... i think
-}
-
-pub struct FACTSDevice33 {
-    /// The non-blank alphanumeric identifier assigned to this FACTS device.
-    /// Each FACTS device must have a unique `name.
-    /// `name` may be up to twelve characters and may contain any combination of blanks, uppercase letters,
-    /// numbers and special characters. name must be enclosed in single or double quotes if it contains any
-    /// blanks or special characters. No default allowed.
-    pub name: ArrayString<15>,
 
     /// Bus number, or extended bus name enclosed in single quotes, of a remote Type 1 or 2 bus
     /// where voltage is to be regulated by the shunt element of this FACTS device to the value
@@ -2724,19 +2111,19 @@ pub struct Network {
     pub caseid: CaseID,
 
     /// Bus records.
-    pub buses: Vec<Bus>, // v30/v33
+    pub buses: Vec<Bus>,
 
     /// Load records.
     pub loads: Vec<Load>,
 
     /// Fixed Bus Shunt records.
-    pub fixed_shunts: Option<Vec<FixedShunt>>, // v33 only
+    pub fixed_shunts: Vec<FixedShunt>,
 
     /// Generator records.
     pub generators: Vec<Generator>,
 
     /// Non-transformer Branch records.
-    pub branches: Vec<Branch>, // v30/v33
+    pub branches: Vec<Branch>,
 
     /// Transformer records.
     pub transformers: Vec<Transformer>,
@@ -2745,13 +2132,13 @@ pub struct Network {
     pub area_interchanges: Vec<AreaInterchange>,
 
     /// Two-terminal DC Line records.
-    pub two_terminal_dc: Vec<TwoTerminalDCLine>, // v30/v33
+    pub two_terminal_dc: Vec<TwoTerminalDCLine>,
 
     /// Voltage Source Converter DC Line records.
     pub vsc_dc: Vec<VSCDCLine>,
 
     /// Switched Shunt records.
-    pub switched_shunts: Vec<SwitchedShunt>, // v30/v33
+    pub switched_shunts: Vec<SwitchedShunt>,
 
     /// Transformer impedance correction records.
     pub impedance_corrections: Vec<ImpedanceCorrection>,
@@ -2760,7 +2147,7 @@ pub struct Network {
     pub multi_terminal_dc: Vec<MultiTerminalDCLine>,
 
     /// Multi-section line group records.
-    pub multi_section_lines: Vec<MultiSectionLineGroup>, // v30/v33
+    pub multi_section_lines: Vec<MultiSectionLineGroup>,
 
     /// Zone records.
     pub zones: Vec<Zone>,
@@ -2772,5 +2159,5 @@ pub struct Network {
     pub owners: Vec<Owner>,
 
     /// FACTS device records.
-    pub facts: Vec<FACTSDevice>, // v30/v33
+    pub facts: Vec<FACTSDevice>,
 }

@@ -1,4 +1,4 @@
-use crate::{Bus33, CaseID, Load};
+use crate::{Bus, CaseID, Load};
 use arrayvec::ArrayString;
 
 #[test]
@@ -88,7 +88,7 @@ fn test_parse_raw_loads() {
 fn test_parse_raw_bus() {
     // let input = "111,'STBC      ',161.00,1,    0.00,    0.00,227,   1,1.09814,  -8.327,  1 /* [STBC   1   ] */";
     let input = "    1,'WINNSBORO 0 ', 138.0000,1,   1,   2,   1,1.01215947, -10.768348, 1.10000, 0.90000, 1.10000, 0.90000";
-    let expected = Bus33 {
+    let expected = Bus {
         i: 1,
         name: ArrayString::from("WINNSBORO 0 ").unwrap(),
         basekv: 138.0,
