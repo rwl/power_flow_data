@@ -242,7 +242,7 @@ pub(crate) fn parse_raw_load(input: &str) -> IResult<&str, Load> {
     let (input, _) = char(',')(input)?;
     let (input, _) = space0(input)?;
 
-    let (input, status) = parse_bool(input)?;
+    let (input, status) = parse_i8(input)?;
     let (input, _) = char(',')(input)?;
     let (input, _) = space0(input)?;
 

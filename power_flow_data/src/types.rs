@@ -9,24 +9,42 @@ use crate::traits::RawRecord;
 //    FULL COPY OF ETC.
 
 /// Case identification data.
-#[derive(PartialEq, Debug, Default)]
+#[derive(PartialEq, Debug, Clone)]
 pub struct CaseID {
     /// IC Change code:
     /// 0 - base case (i.e., clear the working case before adding data to it).
     /// 1 - add data to the working case.
     pub ic: i8,
+
     /// System base MVA.
     pub sbase: f64,
+
     /// PSSE revision number (if known).
     pub rev: Option<usize>,
+
     /// Units of transformer ratings (see [Transformer]).
     /// `xfrrat` ≤ 0 for MVA. `xfrrat` > 0 for current expressed as MVA.
     pub xfrrat: Option<i8>,
+
     /// Units of ratings of non-transformer branches (refer to Non-Transformer Branch Data).
     /// `nxfrat` ≤ 0 for MVA. `nxfrat` > 0 for current expressed as MVA.
     pub nxfrat: Option<i8>,
+
     /// System base frequency in Hertz.
     pub basfrq: Option<f64>,
+}
+
+impl Default for CaseID {
+    fn default() -> Self {
+        Self {
+            ic: 0,
+            sbase: Default::default(),
+            rev: Some(33),
+            xfrrat: Default::default(),
+            nxfrat: Default::default(),
+            basfrq: Default::default(),
+        }
+    }
 }
 
 // impl CaseID {
@@ -34,6 +52,17 @@ pub struct CaseID {
 //         Self{ic, sbase, rev, xfrrat, nxfrat, basfrq}
 //     }
 // }
+
+pub type IDE = i8;
+
+/// Load bus or other bus without any generator boundary condition.
+pub const LOADBUS: IDE = 1;
+/// Generator or plant bus either regulating voltage or with a fixed reactive power.
+pub const GENBUS: IDE = 2;
+/// Swing bus or slack bus.
+pub const SLACKBUS: IDE = 3;
+/// Disconnected or isolated bus.
+pub const ISOLATED: IDE = 4;
 
 pub type BusNum = i32;
 pub type AreaNum = i16;
@@ -62,7 +91,7 @@ pub enum Records {
 }
 
 /// Network bus data record (in PSSE v33 format).
-#[derive(PartialEq, Debug, Default, RawRecord)]
+#[derive(PartialEq, Clone, Debug, RawRecord)]
 pub struct Bus {
     /// Bus number (1 to 999997).
     pub i: BusNum,
@@ -76,13 +105,13 @@ pub struct Bus {
     pub basekv: f64,
 
     /// Bus type code:
-    /// 1 - load bus or other bus without any generator boundary condition.
-    /// 2 - generator or plant bus either regulating voltage or with a fixed reactive power (Mvar).
-    /// A generator that reaches its reactive power limit will no longer control voltage but rather hold reactive power at its limit.
-    /// 3 - swing bus or slack bus.
-    /// It has no power or reactive limits and regulates voltage at a fixed reference angle.
-    /// 4 - disconnected or isolated bus.
-    pub ide: i8, // 1, 2, 3 or 4
+    ///  * 1 - load bus or other bus without any generator boundary condition.
+    ///  * 2 - generator or plant bus either regulating voltage or with a fixed reactive power (Mvar).
+    ///      A generator that reaches its reactive power limit will no longer control voltage but rather hold reactive power at its limit.
+    ///  * 3 - swing bus or slack bus.
+    ///      It has no power or reactive limits and regulates voltage at a fixed reference angle.
+    ///  * 4 - disconnected or isolated bus.
+    pub ide: IDE, // 1, 2, 3 or 4
 
     /// Area number. 1 through the maximum number of areas at the current size level.
     pub area: AreaNum,
@@ -115,21 +144,41 @@ pub struct Bus {
     pub evlo: f64,
 }
 
+impl Default for Bus {
+    fn default() -> Self {
+        Self {
+            i: Default::default(),
+            name: Default::default(),
+            basekv: Default::default(),
+            ide: 1,
+            area: 1,
+            zone: 1,
+            owner: 1,
+            vm: 1.0,
+            va: 0.0,
+            nvhi: 1.1,
+            nvlo: 0.9,
+            evhi: 1.1,
+            evlo: 0.9,
+        }
+    }
+}
+
 /// Each network bus at which a load is to be represented must be specified in at least one load
 /// data record. If multiple loads are to be represented at a bus, they must be individually
 /// identified in a load data record for the bus with a different load identifier.
 /// Each load at a bus can be a mixture of loads with different characteristics.
-#[derive(PartialEq, Debug, Default)]
+#[derive(PartialEq, Clone, Debug)]
 pub struct Load {
     /// Buses number, or extended buses name enclosed in single quotes.
     pub i: BusNum,
 
-    /// One- or two-character uppercase non blank alphanumeric load identifier used to distinguish among multiple loads at bus "I".
+    /// One- or two-character uppercase non-blank alphanumeric load identifier used to distinguish among multiple loads at bus "I".
     /// It is recommended that, at buses for which a single load is present, the load be designated as having the load identifier '1'.
     pub id: ArrayString<3>, // TODO: confirm 3 is enough in practice, when whitespace can be present
 
     /// Initial load status of one for in-service and zero for out-of-service.
-    pub status: bool,
+    pub status: i8,
 
     /// Area to which the load is assigned (1 through the maximum number of areas at the current size level).
     pub area: AreaNum,
@@ -171,6 +220,27 @@ pub struct Load {
     pub intrpt: Option<bool>,
 }
 
+impl Default for Load {
+    fn default() -> Self {
+        Self {
+            i: Default::default(),
+            id: Default::default(),
+            status: 1,
+            area: 1,
+            zone: 1,
+            pl: Default::default(),
+            ql: Default::default(),
+            ip: Default::default(),
+            iq: Default::default(),
+            yp: Default::default(),
+            yq: Default::default(),
+            owner: 1,
+            scale: Default::default(),
+            intrpt: Default::default(),
+        }
+    }
+}
+
 /// Each network bus at which fixed bus shunt is to be represented must be specified in at least
 /// one fixed bus shunt data record. Multiple fixed bus shunts may be represented at a bus by
 /// specifying more than one fixed bus shunt data record for the bus, each with a different shunt
@@ -183,6 +253,7 @@ pub struct Load {
 ///
 /// !!! compat "Not present in v30 files"
 ///     v30 files do not have `FixedShunts`; refer to [Bus] and [SwitchedShunt].
+#[derive(Clone)]
 pub struct FixedShunt {
     /// Bus number, or extended bus name enclosed in single quotes. No default.
     pub i: BusNum,
@@ -194,11 +265,11 @@ pub struct FixedShunt {
     pub id: ArrayString<3>,
 
     /// Shunt status of one for in-service and zero for out-of-service. `status` = 1 by default.
-    pub status: bool,
+    pub status: i8,
 
     /// Active component of shunt admittance to ground; entered in MW at one per unit voltage.
     /// `gl` should not include any resistive impedance load, which is entered as part of load
-    /// data (see [Load]. `gl` = 0.0 by default.
+    /// data (see [Load]). `gl` = 0.0 by default.
     pub gl: f64,
 
     /// Reactive component of shunt admittance to ground; entered in Mvar at one per unit voltage.
@@ -212,16 +283,29 @@ pub struct FixedShunt {
     pub bl: f64,
 }
 
+impl Default for FixedShunt {
+    fn default() -> Self {
+        Self {
+            i: Default::default(),
+            id: Default::default(),
+            status: 1,
+            gl: Default::default(),
+            bl: Default::default(),
+        }
+    }
+}
+
 /// Each network bus to be represented as a generator or plant bus in PSS/E must be specified
 /// in a generator data record. In particular, each bus specified in the bus data input with a
 /// type code of two (2) or three (3) must have a generator data record entered for it.
+#[derive(Clone)]
 pub struct Generator {
     /// Bus number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
 
     /// One- or two-character uppercase non blank alphanumeric machine identifier used to distinguish among multiple machines at bus "I".
-    /// It is recommended that, at buses for which a single machine is present, the machine be designated as having the machine identifier ’1’.
-    /// ID = ’1’ by default.
+    /// It is recommended that, at buses for which a single machine is present, the machine be designated as having the machine identifier `1`.
+    /// ID = `1` by default.
     pub id: ArrayString<3>, // TODO: confirm 3 is enough in practice, when whitespace can be present
 
     /// Generator active power output; entered in MW. PG = 0.0 by default.
@@ -285,7 +369,7 @@ pub struct Generator {
 
     /// Initial machine status of one for in-service and zero for out-of-service.
     /// STAT = 1 by default.
-    pub stat: bool,
+    pub stat: i8,
 
     /// Percent of the total Mvar required to hold the voltage at the bus controlled by this bus "I" that are to be contributed by the generation at bus "I";
     /// RMPCT must be positive.
@@ -336,6 +420,41 @@ pub struct Generator {
     pub wpf: Option<f64>,
 }
 
+impl Default for Generator {
+    fn default() -> Self {
+        Self {
+            i: Default::default(),
+            id: Default::default(),
+            pg: 0.0,
+            qg: 0.0,
+            qt: 9999.0,
+            qb: -9999.0,
+            vs: 1.0,
+            ireg: 0,
+            mbase: Default::default(), // sbase
+            zr: 0.0,
+            zx: 1.0,
+            rt: 0.0,
+            xt: 0.0,
+            gtap: 1.0,
+            stat: 1,
+            rmpct: 100.0,
+            pt: 9999.0,
+            pb: -9999.0,
+            o1: 0,
+            f1: None,
+            o2: None,
+            f2: None,
+            o3: None,
+            f3: None,
+            o4: None,
+            f4: None,
+            wmod: None,
+            wpf: None,
+        }
+    }
+}
+
 /// In PSS/E, the basic transmission line model is an Equivalent Pi connected between network buses.
 ///
 /// Data for shunt equipment units, such as reactors, which are connected to and switched with the line,
@@ -347,6 +466,7 @@ pub struct Generator {
 /// !!! note "Transformers"
 ///     Branches to be modeled as transformers are not specified in this data category;
 ///     rather, they are specified in the [Transformer] data category.
+#[derive(Clone)]
 pub struct Branch {
     /// Branch "from bus" number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
@@ -408,7 +528,7 @@ pub struct Branch {
 
     /// Initial branch status where 1 designates in-service and 0 designates out-of-service.
     /// ST = 1 by default.
-    pub st: bool,
+    pub st: i8,
 
     /// Metered end flag.
     /// * ≤1 to designate bus `i` as the metered end.
@@ -436,6 +556,37 @@ pub struct Branch {
     pub f4: Option<f64>,
 }
 
+impl Default for Branch {
+    fn default() -> Self {
+        Self {
+            i: Default::default(),
+            j: Default::default(),
+            ckt: Default::default(),
+            r: Default::default(),
+            x: Default::default(),
+            b: 0.0,
+            rate_a: Default::default(),
+            rate_b: 0.0,
+            rate_c: 0.0,
+            gi: 0.0,
+            bi: 0.0,
+            gj: 0.0,
+            bj: 0.0,
+            st: 1,
+            met: 1,
+            len: 0.0,
+            o1: 1,
+            f1: 1.0,
+            o2: None,
+            f2: None,
+            o3: None,
+            f3: None,
+            o4: None,
+            f4: None,
+        }
+    }
+}
+
 /// Each AC transformer to be represented in PSS/E is introduced through transformer data records
 /// that specify all the data required to model transformers in power flow calculations, with
 /// one exception.
@@ -449,6 +600,7 @@ pub struct Branch {
 /// The data records for the two-winding transformer are common to the three-winding transformer;
 /// the data block for two-winding transformers is a subset of the data required for three-winding
 /// transformers.
+#[derive(Clone)]
 pub struct Transformer {
     // first row //
     /// The bus number, or extended bus name enclosed in single quotes, of the bus to which the
@@ -971,10 +1123,101 @@ pub struct Transformer {
     pub cnxa3: Option<f64>,
 }
 
+impl Default for Transformer {
+    fn default() -> Self {
+        Self {
+            i: Default::default(),
+            j: Default::default(),
+            k: 0,
+            ckt: Default::default(),
+            cw: 1,
+            cz: 1,
+            cm: 1,
+            mag1: 0.0,
+            mag2: 0.0,
+            nmetr: 0,
+            name: Default::default(),
+            stat: 1,
+            o1: 1,
+            f1: 1.0,
+            o2: None,
+            f2: None,
+            o3: None,
+            f3: None,
+            o4: None,
+            f4: None,
+            vecgrp: None,
+            r1_2: 0.0,
+            x1_2: Default::default(),
+            sbase1_2: 0.0, // sbase
+            r2_3: None,
+            x2_3: None,
+            sbase2_3: None,
+            r3_1: None,
+            x3_1: None,
+            sbase3_1: None,
+            vmstar: None,
+            anstar: None,
+            windv1: 1.0,
+            nomv1: 0.0,
+            ang1: 0.0,
+            rata1: Default::default(),
+            ratb1: 0.0,
+            ratc1: 0.0,
+            cod1: 0,
+            cont1: 0,
+            rma1: 1.1,
+            rmi1: 0.9,
+            vma1: 1.1,
+            vmi1: 0.9,
+            ntp1: 33,
+            tab1: 0,
+            cr1: 0.0,
+            cx1: 0.0,
+            cnxa1: None,
+            windv2: 1.0,
+            nomv2: 0.0,
+            ang2: None,
+            rata2: None,
+            ratb2: None,
+            ratc2: None,
+            cod2: None,
+            cont2: None,
+            rma2: None,
+            rmi2: None,
+            vma2: None,
+            vmi2: None,
+            ntp2: None,
+            tab2: None,
+            cr2: None,
+            cx2: None,
+            cnxa2: None,
+            windv3: None,
+            nomv3: None,
+            ang3: None,
+            rata3: None,
+            ratb3: None,
+            ratc3: None,
+            cod3: None,
+            cont3: None,
+            rma3: None,
+            rmi3: None,
+            vma3: None,
+            vmi3: None,
+            ntp3: None,
+            tab3: None,
+            cr3: None,
+            cx3: None,
+            cnxa3: None,
+        }
+    }
+}
+
 /// Area interchange is a required net export of power from, or net import of power to, a
 /// specific area. This does not imply that the power is destined to be transferred to or from
 /// any other specific area. To specify transfers between specific pairs of areas see
 /// `InterAreaTransfers`.
+#[derive(Clone)]
 pub struct AreaInterchange {
     /// Area number (1 through the maximum number of areas at the current size level)
     pub i: AreaNum,
@@ -1012,6 +1255,7 @@ pub struct AreaInterchange {
 ///
 /// The steady-state model comprising this data enables not only power flow analysis but also
 /// establishes the initial steady-state for dynamic analysis.
+#[derive(Clone)]
 pub struct TwoTerminalDCLine {
     /// The non-blank alphanumeric identifier assigned to this DC line.
     /// Each two-terminal DC line must have a unique `name.
@@ -1223,6 +1467,7 @@ pub struct TwoTerminalDCLine {
 ///
 /// Defines line quantities and control parameters, and the converter buses (converter 1 and
 /// converter 2), along with their data quantities and control parameters.
+#[derive(Clone)]
 pub struct VSCDCLine {
     // First line of data //
     /// The non-blank alphanumeric identifier assigned to this VSC DC line.
@@ -1432,6 +1677,7 @@ pub struct VSCDCLine {
 /// a switched shunt data record specified for it. The switched shunts are represented with up to
 /// eight blocks of admittance, each one of which consists of up to nine steps of the specified
 /// block admittance.
+#[derive(Clone)]
 pub struct SwitchedShunt {
     /// Bus number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
@@ -1457,7 +1703,7 @@ pub struct SwitchedShunt {
 
     /// Initial switched shunt status of one for in-service and zero for out-of-service.
     /// `stat` = 1 by default.
-    pub stat: bool,
+    pub stat: i8,
 
     /// When `modsw` is 1 or 2, the controlled voltage upper limit; entered in pu.
     /// When `modsw` is 3, 4 or 5, the controlled reactive power range upper limit; entered in pu
@@ -1550,6 +1796,7 @@ pub struct SwitchedShunt {
 /// the impedance of each transformer winding assigned to the record is treated as a function of
 /// phase shift angle. Otherwise, the impedances of the transformer windings assigned to the record
 /// are made sensitive to off-nominal turns ratio.
+#[derive(Clone)]
 pub struct ImpedanceCorrection {
     /// Impedance correction record number.
     pub i: i16,
@@ -1594,6 +1841,7 @@ pub struct ImpedanceCorrection {
 // dedicated `MultiTerminalDCLine` object. And each `MultiTerminalDCLine` is a bit like a
 // `Network`, with a `DCLineID` (`CaseID`) and 3 `Records` (`ACConverters, `DCBuses`, `DCLinks`)
 
+#[derive(Clone)]
 pub struct DCLineID {
     /// The non-blank alphanumeric identifier assigned to this DC line.
     /// Each multi-terminal DC line must have a unique `name.
@@ -1638,6 +1886,7 @@ pub struct DCLineID {
     pub vconvn: BusNum,
 }
 
+#[derive(Clone)]
 pub struct ACConverter {
     /// AC converter bus number, or extended bus name enclosed in single quotes.
     /// No default.
@@ -1705,6 +1954,7 @@ pub struct ACConverter {
     pub cnvcod: i8,
 }
 
+#[derive(Clone)]
 pub struct DCBus {
     /// DC bus number (1 to `NDCBS`).
     /// The DC buses are used internally within each multi-terminal DC line and must be numbered
@@ -1748,6 +1998,7 @@ pub struct DCBus {
     pub owner: OwnerNum,
 }
 
+#[derive(Clone)]
 pub struct DCLink {
     /// Branch "from bus" DC bus number.
     pub idc: BusNum,
@@ -1809,9 +2060,10 @@ pub struct DCLink {
 /// Each multi-terminal DC line record defines the number of converters, number of DC buses and
 /// number of DC links as well as related bus numbers and control mode (see [DCLineID]),
 /// then data for:
-/// * each converter (see [ACConverter])
-/// * each DC bus (see [DCBus])
-/// * each DC link (see [DCLink])
+///  * each converter (see [ACConverter])
+///  * each DC bus (see [DCBus])
+///  * each DC link (see [DCLink])
+#[derive(Clone)]
 pub struct MultiTerminalDCLine {
     /// High-level data about this line.
     pub line_id: DCLineID,
@@ -1867,6 +2119,7 @@ pub struct MultiTerminalDCLine {
 /// A FACTS control device may not be connected to a multi-section line dummy bus.
 /// * The status of line sections and type codes of dummy buses are set such that the multi-section
 /// line is treated as a single entity with regards to its service status.
+#[derive(Clone)]
 pub struct MultiSectionLineGroup {
     /// "From bus" number, or extended bus name enclosed in single quotes.
     pub i: BusNum,
@@ -1907,6 +2160,7 @@ pub struct MultiSectionLineGroup {
 /// Specifically, the zone number is entered as part of the data records for the [buses](Bus) and [loads](Load).
 /// The use of zones enables the user to develop reports and to check results on the basis of zones and,
 /// consequently be highly specific when reporting and interpreting analytical results.
+#[derive(Clone)]
 pub struct Zone {
     /// Zone number (1 through the maximum number of zones at the current size level)
     pub i: ZoneNum,
@@ -1922,6 +2176,7 @@ pub struct Zone {
 /// Further, the user can schedule active power transfers between pairs of areas.
 ///
 /// See [AreaInterchange] for desired net interchange.
+#[derive(Clone)]
 pub struct InterAreaTransfer {
     /// "From area" number (1 through the maximum number of areas at the current size level).
     pub arfrom: AreaNum,
@@ -1943,6 +2198,7 @@ pub struct InterAreaTransfer {
 /// PSS/E allows the user to identify which organization or utility actually owns a facility,
 /// a piece of equipment, or a load. Major network elements can have up to four different owners.
 /// This facilitates interpretation of results and reporting of results on the basis of ownership.
+#[derive(Clone)]
 pub struct Owner {
     /// Owner number (1 through the maximum number of owners at the current size level).
     pub i: OwnerNum,
@@ -1961,6 +2217,7 @@ pub struct Owner {
 /// the Static Synchronous Series Compensator (SSSC), combined devices such as the
 /// Unified Power Flow Controller (UPFC) and the Interline Power Flow Controllers (IPFC),
 /// of which the latter are parallel series devices.
+#[derive(Clone)]
 pub struct FACTSDevice {
     /// The non-blank alphanumeric identifier assigned to this FACTS device.
     /// Each FACTS device must have a unique `name.
@@ -2103,6 +2360,7 @@ pub struct FACTSDevice {
 /// 1. [InterAreaTransfer]
 /// 1. [Owner]
 /// 1. [FACTSDevice]
+#[derive(Default, Clone)]
 pub struct Network {
     /// Version of the PSS/E data version given or detected when parsing.
     pub version: i8,

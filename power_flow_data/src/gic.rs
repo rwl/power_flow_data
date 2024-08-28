@@ -77,10 +77,10 @@ pub struct EarthModel {
 }
 
 pub struct GIC {
-    substations: Vec<Substation>,
-    bus_substations: Vec<BusSubstation>,
-    transformers: Vec<Transformer>,
-    fixed_shunts: Vec<FixedShunt>,
-    branches: Vec<Branch>,
-    earth_models: Vec<EarthModel>,
+    pub substations: Vec<Substation>,
+    pub bus_substations: Vec<BusSubstation>,
+    pub transformers: Vec<Transformer>,
+    pub fixed_shunts: Vec<FixedShunt>,
+    pub branches: Vec<Branch>,
+    pub earth_models: Vec<EarthModel>,
 }
