@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["power_flow_data_derive", "power_flow_data"]
+members = ["power_flow_data_derive", "power_flow_data", "power_flow"]
 
 resolver = "2"
 

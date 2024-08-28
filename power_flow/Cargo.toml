@@ -1,0 +1,18 @@
+[package]
+name = "power_flow"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+anyhow = "1"
+num-complex = "0.4"
+#sundials = "0.1.1"
+sundials = { path = "../../sundials" }
+#sparsetools = "0.2"
+sparsetools = { path = "../../sparsetools" }
+arrayvec = "0.7"
+
+power_flow_data = { path = "../power_flow_data" }
+
+[dev-dependencies]
+float-cmp = "0.9"
