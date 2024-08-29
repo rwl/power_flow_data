@@ -6,8 +6,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1"
 num-complex = "0.4"
-#sundials = "0.1.1"
-sundials = { path = "../../sundials" }
+sundials = "0.2"
+#sundials = { path = "../../sundials" }
 #sparsetools = "0.2"
 sparsetools = { path = "../../sparsetools" }
 arrayvec = "0.7"

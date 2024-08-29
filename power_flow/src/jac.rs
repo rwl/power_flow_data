@@ -3,16 +3,17 @@ use num_complex::Complex64;
 use sparsetools::coo::{CCoo, Coo};
 use sparsetools::csc::{CCSC, CSC};
 use std::iter::zip;
+use sundials::nvector::NVector;
 use sundials::sunmatrix::SparseMatrix;
 
 #[allow(non_snake_case)]
 pub(super) fn jac(
-    u: &[f64],
-    _fu: &mut [f64],
+    u: &NVector,
+    _fu: &mut NVector,
     J: &mut SparseMatrix,
     user_data: &Option<UserData>,
-    _tmp1: &[f64],
-    _tmp2: &[f64],
+    _tmp1: &NVector,
+    _tmp2: &NVector,
 ) -> i32 {
     // var (
     let user_data = user_data.as_ref().unwrap();
@@ -21,7 +22,7 @@ pub(super) fn jac(
     // let Sb = d.network.caseid.sbase;
     let Sb = user_data.s_base;
 
-    let yd = u;
+    let yd = u.as_slice();
     //fd = fu.Array()
     // )
     let n = yd.len();

@@ -29,8 +29,6 @@ pub fn power_flow(network: &mut Network, tolerance: f64) -> Result<()> {
 
     let mut u0: NVector = u0(&context, &network, &a, &v, &q, &p, &user_data.ang0, slack);
 
-    kin.init(Some(calc_inc), Some(jac), Some(user_data), &u0)?;
-
     let mut scale = u0.clone();
     scale.fill_with(1); // No scaling used.
 
@@ -40,7 +38,14 @@ pub fn power_flow(network: &mut Network, tolerance: f64) -> Result<()> {
     let j_mat = SparseMatrix::new(n, n, nz, SparseType::CSC, &context);
 
     let ls = LinearSolver::new_faer(&u0, &j_mat, &context);
-    kin.set_linear_solver(&ls, &j_mat)?;
+
+    kin.init(
+        Some(calc_inc),
+        Some((&ls, &j_mat)),
+        Some(jac),
+        Some(user_data),
+        &u0,
+    )?;
 
     kin.solve(&mut u0, Strategy::None, &scale, &scale)?;
 

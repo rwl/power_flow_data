@@ -1,7 +1,8 @@
 use super::user_data::UserData;
 use num_complex::Complex64;
+use sundials::nvector::NVector;
 
-pub(super) fn calc_inc(uu: &[f64], fval: &mut [f64], user_data: &Option<UserData>) -> i32 {
+pub(super) fn calc_inc(uu: &NVector, fval: &mut NVector, user_data: &Option<UserData>) -> i32 {
     let user_data = user_data.as_ref().unwrap();
     // let network = &user_data.network;
     // let s_base = user_data.network.caseid.sbase;
@@ -9,6 +10,9 @@ pub(super) fn calc_inc(uu: &[f64], fval: &mut [f64], user_data: &Option<UserData
     let n = user_data.v.len();
     let slack = user_data.slack;
     let y_mat = &user_data.y_mat;
+
+    let uu = uu.as_slice();
+    let fval = fval.as_slice_mut();
 
     println!("uu: {:?}", uu);
 
