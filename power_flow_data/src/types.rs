@@ -64,6 +64,11 @@ pub const SLACKBUS: IDE = 3;
 /// Disconnected or isolated bus.
 pub const ISOLATED: IDE = 4;
 
+pub type Stat = i8;
+
+pub const IN_SERVICE: Stat = 1;
+pub const OUT_OF_SERVICE: Stat = 0;
+
 pub type BusNum = i32;
 pub type AreaNum = i16;
 pub type ZoneNum = i16;
@@ -178,7 +183,7 @@ pub struct Load {
     pub id: ArrayString<3>, // TODO: confirm 3 is enough in practice, when whitespace can be present
 
     /// Initial load status of one for in-service and zero for out-of-service.
-    pub status: i8,
+    pub status: Stat,
 
     /// Area to which the load is assigned (1 through the maximum number of areas at the current size level).
     pub area: AreaNum,
@@ -225,7 +230,7 @@ impl Default for Load {
         Self {
             i: Default::default(),
             id: Default::default(),
-            status: 1,
+            status: IN_SERVICE,
             area: 1,
             zone: 1,
             pl: Default::default(),
@@ -265,7 +270,7 @@ pub struct FixedShunt {
     pub id: ArrayString<3>,
 
     /// Shunt status of one for in-service and zero for out-of-service. `status` = 1 by default.
-    pub status: i8,
+    pub status: Stat,
 
     /// Active component of shunt admittance to ground; entered in MW at one per unit voltage.
     /// `gl` should not include any resistive impedance load, which is entered as part of load
@@ -288,7 +293,7 @@ impl Default for FixedShunt {
         Self {
             i: Default::default(),
             id: Default::default(),
-            status: 1,
+            status: IN_SERVICE,
             gl: Default::default(),
             bl: Default::default(),
         }
@@ -369,7 +374,7 @@ pub struct Generator {
 
     /// Initial machine status of one for in-service and zero for out-of-service.
     /// STAT = 1 by default.
-    pub stat: i8,
+    pub stat: Stat,
 
     /// Percent of the total Mvar required to hold the voltage at the bus controlled by this bus "I" that are to be contributed by the generation at bus "I";
     /// RMPCT must be positive.
@@ -437,7 +442,7 @@ impl Default for Generator {
             rt: 0.0,
             xt: 0.0,
             gtap: 1.0,
-            stat: 1,
+            stat: IN_SERVICE,
             rmpct: 100.0,
             pt: 9999.0,
             pb: -9999.0,
@@ -528,7 +533,7 @@ pub struct Branch {
 
     /// Initial branch status where 1 designates in-service and 0 designates out-of-service.
     /// ST = 1 by default.
-    pub st: i8,
+    pub st: Stat,
 
     /// Metered end flag.
     /// * ≤1 to designate bus `i` as the metered end.
@@ -572,7 +577,7 @@ impl Default for Branch {
             bi: 0.0,
             gj: 0.0,
             bj: 0.0,
-            st: 1,
+            st: IN_SERVICE,
             met: 1,
             len: 0.0,
             o1: 1,
@@ -672,7 +677,7 @@ pub struct Transformer {
 
     /// The initial transformer status, where 1 designates in-service and 0 designates out-of-service.
     /// `stat` = 1 by default.
-    pub stat: i8,
+    pub stat: Stat,
 
     /// An owner number; (1 through the maximum number of owners at the current size level).
     /// Each transformer may have up to four owners. See [Owner].
@@ -1135,9 +1140,9 @@ impl Default for Transformer {
             cm: 1,
             mag1: 0.0,
             mag2: 0.0,
-            nmetr: 0,
+            nmetr: 2,
             name: Default::default(),
-            stat: 1,
+            stat: IN_SERVICE,
             o1: 1,
             f1: 1.0,
             o2: None,
@@ -1463,6 +1468,59 @@ pub struct TwoTerminalDCLine {
     pub xcapi: f64,
 }
 
+impl Default for TwoTerminalDCLine {
+    fn default() -> Self {
+        Self {
+            name: Default::default(),
+            mdc: 0,
+            rdc: Default::default(),
+            setvl: Default::default(),
+            vschd: Default::default(),
+            vcmod: 0.0,
+            rcomp: 0.0,
+            delti: 0.0,
+            meter: ArrayString::from("I").unwrap(),
+            dcvmin: 0.0,
+            cccitmx: 20,
+            cccacc: 1.0,
+            ipr: Default::default(),
+            nbr: Default::default(),
+            alfmx: Default::default(),
+            alfmn: Default::default(),
+            rcr: Default::default(),
+            xcr: Default::default(),
+            ebasr: Default::default(),
+            trr: 1.0,
+            tapr: 1.0,
+            tmxr: 1.5,
+            tmnr: 0.51,
+            stpr: 0.00625,
+            icr: 0,
+            ifr: 0,
+            itr: 0,
+            idr: ArrayString::from("1").unwrap(),
+            xcapr: 0.0,
+            ipi: Default::default(),
+            nbi: 1,
+            gammx: 25.0,
+            gammn: 15.0,
+            rci: 0.0,
+            xci: 0.0,
+            ebasi: 0.0,
+            tri: 1.0,
+            tapi: 1.0,
+            tmxi: 1.5,
+            tmni: 0.51,
+            stpi: 0.00625,
+            ici: 0,
+            ifi: 0,
+            iti: 0,
+            idi: ArrayString::from("1").unwrap(),
+            xcapi: 0.0,
+        }
+    }
+}
+
 /// Voltage source converter (VSC) DC lines.
 ///
 /// Defines line quantities and control parameters, and the converter buses (converter 1 and
@@ -1703,7 +1761,7 @@ pub struct SwitchedShunt {
 
     /// Initial switched shunt status of one for in-service and zero for out-of-service.
     /// `stat` = 1 by default.
-    pub stat: i8,
+    pub stat: Stat,
 
     /// When `modsw` is 1 or 2, the controlled voltage upper limit; entered in pu.
     /// When `modsw` is 3, 4 or 5, the controlled reactive power range upper limit; entered in pu
@@ -2067,10 +2125,13 @@ pub struct DCLink {
 pub struct MultiTerminalDCLine {
     /// High-level data about this line.
     pub line_id: DCLineID,
+
     /// `line.nconv` converter records.
     pub converter: ACConverter,
+
     /// `line.ndcbs` DC bus records.
     pub bus: DCBus,
+
     /// `line.ndcln` DC link records.
     pub link: DCLink,
 }
