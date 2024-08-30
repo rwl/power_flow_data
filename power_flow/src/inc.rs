@@ -14,7 +14,7 @@ pub(super) fn calc_inc(uu: &NVector, fval: &mut NVector, user_data: &Option<User
     let uu = uu.as_slice();
     let fval = fval.as_slice_mut();
 
-    println!("uu: {:?}", uu);
+    println!("u: {:?}", uu);
 
     fval.fill(0.0);
 
@@ -48,17 +48,19 @@ pub(super) fn calc_inc(uu: &NVector, fval: &mut NVector, user_data: &Option<User
         let &a = user_data.a.get(&generator.i).unwrap();
         let &v = user_data.v.get(&generator.i).unwrap();
 
-        let q = user_data.q[generator.id.as_str()];
-        let p = user_data.p[generator.id.as_str()];
-        let ang0 = user_data.ang0[&(i as i32)];
-
         if generator.i != slack {
+            let q = user_data.q[&i];
+
             // fval[a] -= generator.sr / s_base;
             fval[a] -= generator.pg / s_base;
             fval[v] -= uu[q];
             // fval[q] += uu[v] - (generator.ug / generator.ur);
             fval[q] += uu[v] - generator.vs;
         } else {
+            let p = user_data.p[&i];
+            let q = user_data.q[&i];
+            let ang0 = user_data.ang0[&generator.i];
+
             fval[a] -= uu[p];
             fval[v] -= uu[q];
             fval[q] = uu[v] - generator.vs;

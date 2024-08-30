@@ -61,15 +61,14 @@ pub(super) fn jac(
         A.add(v, v, dQdV).unwrap();
     }
 
-    for g in &user_data.generators {
+    for (i, g) in user_data.generators.iter().enumerate() {
         // var u float64
         // if g.Bus != "" {
         let u = 1.0;
         // }
         let a = user_data.a[&g.i];
         let v = user_data.v[&g.i];
-        let q = user_data.q[g.id.as_str()];
-        let p = user_data.p[g.id.as_str()];
+        let q = user_data.q[&i];
 
         A.set(v, v, -1e-6).unwrap();
         A.set(v, q, -u).unwrap();
@@ -78,6 +77,7 @@ pub(super) fn jac(
 
         // if g.ParticipationFactor == 1 {
         if g.i == user_data.slack {
+            let p = user_data.p[&i];
             A.set(a, p, -u).unwrap();
             A.set(p, a, u).unwrap();
             A.set(p, p, u - 1.0 - 1e-6).unwrap();
@@ -109,25 +109,34 @@ pub(super) fn jac(
         // }
     }
 
+    let (colptrs, rowvals, nz) = J.index_pointers_values_data_mut();
+
+    // let Acoo = A.to_coo();
+    // sparsetools::coo_tocsr(
+    //     n,
+    //     n,
+    //     A.nnz(),
+    //     Acoo.colidx(),
+    //     Acoo.rowidx(),
+    //     Acoo.values(),
+    //     colptrs,
+    //     rowvals,
+    //     nz,
+    // );
+
     let Ac = A.to_csc();
-    {
-        let colptrs = J.index_pointers_mut();
-        // colptrs.copy_from_slice(Ac.colptr());
-        zip(colptrs, Ac.colptr()).for_each(|colptr| {
-            *colptr.0 = *colptr.1 as i64;
-        });
-    }
-    {
-        let rowvals = J.index_values_mut();
-        // rowvals.copy_from_slice(Ac.rowidx());
-        zip(rowvals, Ac.rowidx()).for_each(|rowval| {
-            *rowval.0 = *rowval.1 as i64;
-        });
-    }
-    {
-        let nz = J.data_mut();
-        nz.copy_from_slice(Ac.values());
-    }
+
+    // colptrs.copy_from_slice(Ac.colptr());
+    zip(colptrs, Ac.colptr()).for_each(|colptr| {
+        *colptr.0 = *colptr.1 as i64;
+    });
+
+    // rowvals.copy_from_slice(Ac.rowidx());
+    zip(rowvals, Ac.rowidx()).for_each(|rowval| {
+        *rowval.0 = *rowval.1 as i64;
+    });
+
+    nz.copy_from_slice(Ac.values());
 
     0
 }
@@ -144,7 +153,7 @@ fn line_jac(nb: usize, yd: &[f64], Y: &CSC<usize, Complex64>) -> Coo<usize, f64>
         .iter()
         .map(|yd| Complex64::from_polar(1.0, *yd))
         .collect();
-    let Vc: Vec<Complex64> = yd[nb..]
+    let Vc: Vec<Complex64> = yd[nb..2 * nb]
         .iter()
         .map(|yd| Complex64::new(*yd, 0.0) * Complex64::from_polar(1.0, *yd))
         .collect();

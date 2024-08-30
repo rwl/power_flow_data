@@ -82,7 +82,7 @@ pub(crate) fn build_y(
 
     let Y = Y.to_csr();
 
-    print!("Y:\n{}", Y.to_table());
+    println!("Y:\n{}", Y.to_table());
 
     Y
 }

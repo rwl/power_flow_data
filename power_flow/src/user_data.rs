@@ -22,8 +22,8 @@ pub(super) struct UserData {
 
     pub(super) a: HashMap<BusNum, usize>,
     pub(super) v: HashMap<BusNum, usize>,
-    pub(super) q: HashMap<ArrayString<3>, usize>,
-    pub(super) p: HashMap<ArrayString<3>, usize>,
+    pub(super) q: HashMap<usize, usize>,
+    pub(super) p: HashMap<usize, usize>,
     pub(super) slack: BusNum,
 
     // pub(super) v_base: HashMap<BusNum, f64>, // kV
@@ -38,8 +38,8 @@ impl UserData {
     pub(super) fn new(network: Network) -> Self {
         let mut a = HashMap::default();
         let mut v = HashMap::default();
-        let mut q = HashMap::default();
-        let mut p = HashMap::default();
+        let mut q: HashMap<usize, usize> = HashMap::default();
+        let mut p: HashMap<usize, usize> = HashMap::default();
         // let mut v_base = HashMap::default();
         let mut ang0 = HashMap::default();
 
@@ -78,12 +78,12 @@ impl UserData {
             // i += 1;
         }
         for (j, gen) in network.generators.iter().enumerate() {
-            q.insert(gen.id, 2 * nb + j);
+            q.insert(j, 2 * nb + j);
             // j += 1;
 
             // if gen.ParticipationFactor == 1 {
             if gen.i == slack {
-                p.insert(gen.id, 2 * nb + ng + k);
+                p.insert(j, 2 * nb + ng + k);
                 k += 1;
             }
         }
@@ -134,8 +134,8 @@ pub fn post_process(
     y: &NVector,
     a: &HashMap<BusNum, usize>,
     v: &HashMap<BusNum, usize>,
-    q: &HashMap<ArrayString<3>, usize>,
-    p: &HashMap<ArrayString<3>, usize>,
+    q: &HashMap<usize, usize>,
+    p: &HashMap<usize, usize>,
     slack: BusNum,
 ) -> Result<(Vec<Flow>, Vec<Flow>)> {
     let s_base = network.caseid.sbase;
@@ -153,14 +153,14 @@ pub fn post_process(
         bus.va = yd[a].to_degrees();
         bus.vm = yd[v];
     }
-    for gen in &mut network.generators {
+    for (i, gen) in &mut network.generators.iter_mut().enumerate() {
         // if gen.Bus != "" {
-        let q = q[gen.id.as_str()];
+        let q = q[&i];
         gen.qg = yd[q] * s_base;
 
         // if gen.ParticipationFactor == 1 {
         if gen.i == slack {
-            let p = p[gen.id.as_str()];
+            let p = p[&i];
             gen.pg = yd[p] * s_base;
         } else {
             // gen.pg = gen.TargetP
@@ -357,12 +357,13 @@ pub fn u0(
     network: &Network,
     a: &HashMap<BusNum, usize>,
     v: &HashMap<BusNum, usize>,
-    q: &HashMap<ArrayString<3>, usize>,
-    p: &HashMap<ArrayString<3>, usize>,
+    q: &HashMap<usize, usize>,
+    p: &HashMap<usize, usize>,
     ang0: &HashMap<BusNum, f64>,
     slack: BusNum,
 ) -> NVector {
     // nd.indexNetwork()
+    let s_base = network.caseid.sbase;
 
     let n = a.len() + v.len() + q.len() + p.len();
     let v0 = nvector::NVector::new_serial(n as i64, ctx).unwrap(); // [Va Vm Qg Pref]
@@ -381,18 +382,18 @@ pub fn u0(
         }
     }
 
-    for gen in &network.generators {
+    for (i, gen) in network.generators.iter().enumerate() {
         if gen.vs != 0.0 {
             let v = v[&gen.i];
             data[v] = gen.vs;
         }
 
-        let qg = q[gen.id.as_str()];
-        data[qg] = gen.qg;
+        let qg = q[&i];
+        data[qg] = gen.qg / s_base;
 
         if gen.i == slack {
-            let pg = p[gen.id.as_str()];
-            data[pg] = gen.pg
+            let pg = p[&i];
+            data[pg] = gen.pg / s_base;
         }
     }
 
