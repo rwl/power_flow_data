@@ -87,7 +87,6 @@ fn validate_network(network: &Network) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use crate::data::{entsoe2, ieee14};
     use crate::power_flow;
     use float_cmp::assert_approx_eq;
 
@@ -96,7 +95,7 @@ mod tests {
         const PG_GRID: f64 = 0.763;
         const QG_GRID: f64 = 1.209;
 
-        let mut net = entsoe2();
+        let mut net = crate::data::entsoe2();
 
         power_flow(&mut net, 1e-6).unwrap();
 
@@ -108,15 +107,20 @@ mod tests {
 
     #[test]
     fn test_ieee14() {
-        const PG_GRID: f64 = 2.3239e2;
-        const QG_GRID: f64 = -0.1689e2;
+        const PG_GRID: f64 = 232.393272; //2.3239e2;
+        const QG_GRID: f64 = -16.5493005; //-0.1689e2;
 
-        let mut net = ieee14();
+        // let mut net = crate::data::ieee14();
+        let (case, bus, gen, branch, _, dcline, _, _) = caseformat::testcase::ieee14();
+        let mut net = caseformat::raw::case_to_raw(&case, &bus, &gen, &branch, &dcline);
 
         power_flow(&mut net, 1e-6).unwrap();
 
         let r#ref = &net.generators[0];
 
+        assert_approx_eq!(f64, r#ref.pg, PG_GRID, epsilon = 1e-4);
+        assert_approx_eq!(f64, r#ref.qg, QG_GRID, epsilon = 1e-4);
+    }
         assert_approx_eq!(f64, r#ref.pg, PG_GRID, epsilon = 1e-3);
         assert_approx_eq!(f64, r#ref.qg, QG_GRID, epsilon = 1e-3);
     }

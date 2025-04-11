@@ -269,19 +269,14 @@ pub fn post_process(
     // The reactive power is divided in proportion to the reactive range
     // of each generator, according to the logic in the pfsoln function
     // by Ray Zimmerman from MATPOWER v7.
-    let mut cg = HashMap::<ArrayString<3>, Vec<usize>>::new();
-    // for _, sub := range nd.net.Substations {
-    //     for _, vl := range sub.VoltageLevels {
+    let mut cg = HashMap::<BusNum, Vec<usize>>::new();
     for (j, gen) in network.generators.iter().enumerate() {
-        // if gen.Bus != "" {
-        if !cg.contains_key(&gen.id) {
-            cg.insert(gen.id, vec![]);
-        }
-        cg.get_mut(&gen.id).unwrap().push(j);
+        // if !cg.contains_key(&gen.i) {
+        //     cg.insert(gen.i, vec![]);
         // }
+        // cg.get_mut(&gen.i).unwrap().push(j);
+        cg.entry(gen.i).or_insert_with(Vec::new).push(j);
     }
-    // }
-    // }
 
     for (_, l) in &cg {
         if l.len() < 2 {
