@@ -89,8 +89,8 @@ pub(super) fn calc_inc(uu: &NVector, fval: &mut NVector, user_data: &Option<User
     for i in 0..n {
         let s: Complex64 = vc[i] * ic[i].conj();
 
-        fval[i] = s.re;
-        fval[n + i] = s.im;
+        fval[i] += s.re;
+        fval[n + i] += s.im;
     }
 
     println!("f: {:?}", fval);

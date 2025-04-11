@@ -154,7 +154,7 @@ pub fn ieee14() -> Network {
             j: 4,
             r: 0.05811,
             x: 0.17632,
-            b: 0.0374,
+            b: 0.0374, // 0.0340
             ..Default::default()
         },
         Branch {
@@ -162,7 +162,7 @@ pub fn ieee14() -> Network {
             j: 5,
             r: 0.05695,
             x: 0.17388,
-            b: 0.0340,
+            b: 0.0340, // 0.0346
             ..Default::default()
         },
         Branch {
@@ -170,7 +170,7 @@ pub fn ieee14() -> Network {
             j: 4,
             r: 0.06701,
             x: 0.17103,
-            b: 0.0346,
+            b: 0.0346, // 0.0128
             ..Default::default()
         },
         Branch {
@@ -270,33 +270,40 @@ pub fn ieee14() -> Network {
     // }
     let transformers = vec![
         Transformer {
-            i: 3,
-            j: 6,
+            i: 4,
+            j: 7,
             x1_2: 0.20912,
             windv1: 0.978,
             ..Default::default()
         }, // 69:13.8
         Transformer {
-            i: 3,
-            j: 8,
+            i: 4,
+            j: 9,
             x1_2: 0.55618,
             windv1: 0.969,
             ..Default::default()
         }, // 69:13.8
         Transformer {
-            i: 4,
-            j: 5,
+            i: 5,
+            j: 6,
             x1_2: 0.25202,
             windv1: 0.932,
             ..Default::default()
         }, // 69:13.8
         Transformer {
-            i: 6,
-            j: 7,
+            i: 7,
+            j: 8,
             x1_2: 0.17615,
             windv1: 1.0,
             ..Default::default()
         }, // 13.8:18
+        Transformer {
+            i: 7,
+            j: 9,
+            x1_2: 0.11001,
+            windv1: 1.0,
+            ..Default::default()
+        }, // 13.8:13.8
     ];
 
     let loads = vec![
@@ -371,7 +378,7 @@ pub fn ieee14() -> Network {
     let generators = vec![
         Generator {
             i: 1,
-            // pg: 2.324 * Sb,
+            pg: 2.324 * Sb,
             qt: 9.9 * Sb,
             qb: -9.9 * Sb,
             vs: 1.06,

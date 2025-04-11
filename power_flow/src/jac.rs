@@ -125,6 +125,7 @@ pub(super) fn jac(
     // );
 
     let Ac = A.to_csc();
+    // let Ac = A.to_csr().transpose();
 
     // colptrs.copy_from_slice(Ac.colptr());
     zip(colptrs, Ac.colptr()).for_each(|colptr| {
@@ -153,9 +154,8 @@ fn line_jac(nb: usize, yd: &[f64], Y: &CSC<usize, Complex64>) -> Coo<usize, f64>
         .iter()
         .map(|yd| Complex64::from_polar(1.0, *yd))
         .collect();
-    let Vc: Vec<Complex64> = yd[nb..2 * nb]
-        .iter()
-        .map(|yd| Complex64::new(*yd, 0.0) * Complex64::from_polar(1.0, *yd))
+    let Vc: Vec<Complex64> = zip(&yd[nb..2 * nb], &Vn)
+        .map(|(yd, vn)| Complex64::new(*yd, 0.0) * vn)
         .collect();
 
     let Ic = Y * &Vc;

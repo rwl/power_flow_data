@@ -35,18 +35,18 @@ pub fn entsoe2() -> Network {
         let Sg = 500.0;
         let pf = 0.95;
         let theta = f64::acos(pf);
-        // Load {
-        //     i: gen_bus.i,
-        //     pl: -Sg * pf,
-        //     ql: -Sg * theta.sin(),
-        //     ..Default::default()
-        // };
-        Generator {
+        Load {
             i: gen_bus.i,
-            pg: -Sg * pf,
-            qg: -Sg * theta.sin(),
+            pl: -Sg * pf,
+            ql: -Sg * theta.sin(),
             ..Default::default()
         }
+        // Generator {
+        //     i: gen_bus.i,
+        //     pg: -Sg * pf,
+        //     qg: -Sg * theta.sin(),
+        //     ..Default::default()
+        // }
     };
 
     let grid = Generator {
@@ -109,8 +109,8 @@ pub fn entsoe2() -> Network {
             ..Default::default()
         },
         buses: vec![grid_bus, gen_bus],
-        loads: vec![grid_load /*, gen*/],
-        generators: vec![grid, gen],
+        loads: vec![grid_load, gen],
+        generators: vec![grid /*, gen*/],
         transformers: vec![gen_tfmr],
         ..Default::default()
     };
