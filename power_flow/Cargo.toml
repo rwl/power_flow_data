@@ -2,6 +2,8 @@
 name = "power_flow"
 version = "0.1.0"
 edition = "2021"
+description = "AC power flow based on KINSOL from SUNDIALS"
+license = "MIT"
 
 [dependencies]
 anyhow = "1"
