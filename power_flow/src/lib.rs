@@ -6,3 +6,4 @@ mod user_data;
 mod y;
 
 pub use power_flow::*;
+pub use user_data::Flow;

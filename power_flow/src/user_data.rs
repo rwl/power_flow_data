@@ -1,6 +1,5 @@
 use crate::y::build_y;
 use anyhow::Result;
-use arrayvec::ArrayString;
 use num_complex::Complex64;
 use power_flow_data::{BusNum, FixedShunt, Generator, Load, Network};
 use sparsetools::csr::CSR;

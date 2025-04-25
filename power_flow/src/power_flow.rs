@@ -26,6 +26,7 @@ pub fn power_flow(network: &mut Network, tolerance: f64) -> Result<()> {
     let mut kin = KIN::<UserData>::new(&context)?;
     // kin.set_print_level(1)?;
     kin.set_func_norm_tol(tolerance)?;
+    // kin.set_num_max_iters(10)?;
 
     let mut u0: NVector = u0(&context, &network, &a, &v, &q, &p, &user_data.ang0, slack);
 
@@ -121,6 +122,19 @@ mod tests {
         assert_approx_eq!(f64, r#ref.pg, PG_GRID, epsilon = 1e-4);
         assert_approx_eq!(f64, r#ref.qg, QG_GRID, epsilon = 1e-4);
     }
+
+    #[test]
+    fn test_gs4_case() {
+        const PG_GRID: f64 = 186.809078;
+        const QG_GRID: f64 = 114.500841;
+
+        let (case, bus, gen, branch, _, dcline, _, _) = caseformat::testcase::gs4();
+        let mut net = caseformat::raw::case_to_raw(&case, &bus, &gen, &branch, &dcline);
+
+        power_flow(&mut net, 1e-6).unwrap();
+
+        let r#ref = &net.generators[1];
+
         assert_approx_eq!(f64, r#ref.pg, PG_GRID, epsilon = 1e-3);
         assert_approx_eq!(f64, r#ref.qg, QG_GRID, epsilon = 1e-3);
     }
