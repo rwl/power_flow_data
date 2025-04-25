@@ -1,13 +1,40 @@
 use arrayvec::ArrayString;
+use nom::branch::alt;
 use nom::bytes::complete::{tag, take_until, take_while};
-use nom::character::complete::{char, digit1, newline, space0, space1};
-use nom::combinator::{map, map_res, opt, recognize};
+use nom::character::complete::{char, digit1, multispace0, newline, space0, space1};
+use nom::combinator::{map_res, opt, recognize, value};
 use nom::multi::separated_list1;
-use nom::sequence::{delimited, pair, preceded, separated_pair, tuple};
+use nom::number::complete::double;
+use nom::sequence::{delimited, pair, preceded, separated_pair, terminated, tuple};
 use nom::IResult;
 use std::str::FromStr;
 
-use crate::{AreaNum, Bus, BusNum, CaseID, Load, Network, OwnerNum, ZoneNum};
+use crate::{AreaNum, Bus, BusNum, CaseID, FixedShunt, Load, Network, OwnerNum, Stat, ZoneNum};
+
+// Parser combinators
+
+/// Parse a positive integer
+pub(crate) fn parse_uint<T: FromStr>(input: &str) -> IResult<&str, T>
+where
+    <T as FromStr>::Err: std::fmt::Debug,
+{
+    map_res(recognize(digit1), |s: &str| s.parse::<T>())(input)
+}
+
+/// Parse a string enclosed in single quotes
+pub(crate) fn parse_quoted_string(input: &str) -> IResult<&str, &str> {
+    delimited(char('\''), take_until("'"), char('\''))(input)
+}
+
+/// Parse an optional comma followed by whitespace
+pub(crate) fn comma_ws(input: &str) -> IResult<&str, ()> {
+    value((), tuple((opt(char(',')), space0)))(input)
+}
+
+/// Parse a floating point number
+pub(crate) fn parse_float(input: &str) -> IResult<&str, f64> {
+    double(input)
+}
 
 fn _parse_integer(input: &str) -> IResult<&str, i32> {
     map_res(recognize(pair(opt(char('-')), digit1)), |s: &str| {
@@ -15,7 +42,17 @@ fn _parse_integer(input: &str) -> IResult<&str, i32> {
     })(input)
 }
 
-fn parse_i8(input: &str) -> IResult<&str, i8> {
+/// Parse a boolean value from 0/1
+pub(crate) fn parse_bool(input: &str) -> IResult<&str, bool> {
+    alt((value(false, tag("0")), value(true, tag("1"))))(input)
+}
+
+/// Parse a status value (0 or 1)
+fn parse_status(input: &str) -> IResult<&str, Stat> {
+    map_res(alt((tag("0"), tag("1"))), |s: &str| s.parse::<Stat>())(input)
+}
+
+pub(crate) fn parse_i8(input: &str) -> IResult<&str, i8> {
     map_res(digit1, |s: &str| s.parse::<i8>())(input)
 }
 
@@ -57,13 +94,13 @@ fn _parse_usize(input: &str) -> IResult<&str, usize> {
 //     )(input)
 // }
 
-fn parse_i32(input: &str) -> IResult<&str, i32> {
-    // Define a parser that can handle an optional minus sign followed by digits
-    let parse_signed = recognize(preceded(opt(char('-')), digit1));
-
-    // Parse the resulting string into an i32
-    map_res(parse_signed, |s: &str| s.parse::<i32>())(input)
-}
+// fn parse_i32(input: &str) -> IResult<&str, i32> {
+//     // Define a parser that can handle an optional minus sign followed by digits
+//     let parse_signed = recognize(preceded(opt(char('-')), digit1));
+//
+//     // Parse the resulting string into an i32
+//     map_res(parse_signed, |s: &str| s.parse::<i32>())(input)
+// }
 
 fn parse_f64(input: &str) -> IResult<&str, f64> {
     map_res(
@@ -91,9 +128,9 @@ fn _parse_float(input: &str) -> IResult<&str, f64> {
     )(input)
 }
 
-fn parse_bool(input: &str) -> IResult<&str, bool> {
-    map(parse_i32, |i| i != 0)(input)
-}
+// fn parse_bool(input: &str) -> IResult<&str, bool> {
+//     map(parse_i32, |i| i != 0)(input)
+// }
 
 fn _parse_string(input: &str) -> IResult<&str, &str> {
     delimited(char('\''), take_until("'"), char('\''))(input)
@@ -312,6 +349,89 @@ pub(crate) fn parse_raw_load(input: &str) -> IResult<&str, Load> {
 
 pub(crate) fn parse_raw_loads(input: &str) -> IResult<&str, Vec<Load>> {
     separated_list1(newline, parse_raw_load)(input)
+}
+
+/// Parse a fixed shunt record
+pub fn parse_fixed_shunt(input: &str) -> IResult<&str, FixedShunt> {
+    let (input, i) = terminated(parse_uint, comma_ws)(input)?;
+    let (input, id_str) = terminated(parse_quoted_string, comma_ws)(input)?;
+
+    // Create ArrayString from the parsed string
+    let mut id = ArrayString::<3>::new();
+    if id_str.len() <= 3 {
+        id.push_str(id_str);
+    } else {
+        return Err(nom::Err::Error(nom::error::Error::new(
+            input,
+            nom::error::ErrorKind::TooLarge,
+        )));
+    }
+
+    let (input, status) = terminated(parse_status, comma_ws)(input)?;
+    let (input, gl) = terminated(parse_float, comma_ws)(input)?;
+    let (input, bl) = parse_float(input)?; // Last field, no comma
+
+    Ok((
+        input,
+        FixedShunt {
+            i,
+            id,
+            status,
+            gl,
+            bl,
+        },
+    ))
+}
+
+/// Parse multiple fixed shunt records, one per line
+pub fn parse_fixed_shunts(input: &str) -> IResult<&str, Vec<FixedShunt>> {
+    let mut shunts = Vec::new();
+    let mut remaining = input;
+
+    while !remaining.is_empty() {
+        match parse_fixed_shunt(remaining) {
+            Ok((rest, shunt)) => {
+                shunts.push(shunt);
+                // Skip any whitespace including newlines to get to the next record
+                let (rest, _) = multispace0(rest)?;
+                remaining = rest;
+            }
+            Err(_) => break,
+        }
+    }
+
+    Ok((remaining, shunts))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_fixed_shunt() {
+        let input = "9,' 1', 1,     0.000,    19.000";
+        let (_, shunt) = parse_fixed_shunt(input).unwrap();
+
+        assert_eq!(shunt.i, 9);
+        assert_eq!(shunt.id.as_str(), " 1");
+        assert_eq!(shunt.status, 1);
+        assert_eq!(shunt.gl, 0.0);
+        assert_eq!(shunt.bl, 19.0);
+    }
+
+    #[test]
+    fn test_parse_multiple_fixed_shunts() {
+        let input = "9,' 1', 1,     0.000,    19.000
+11,' 1', 1,     0.000,    10.000";
+
+        let (_, shunts) = parse_fixed_shunts(input).unwrap();
+
+        assert_eq!(shunts.len(), 2);
+        assert_eq!(shunts[0].i, 9);
+        assert_eq!(shunts[0].bl, 19.0);
+        assert_eq!(shunts[1].i, 11);
+        assert_eq!(shunts[1].bl, 10.0);
+    }
 }
 
 pub fn parse_raw_case(input: &str) -> IResult<&str, Network> {

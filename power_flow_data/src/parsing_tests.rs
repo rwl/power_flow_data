@@ -26,7 +26,7 @@ fn test_parse_raw_load() {
     let expected = Load {
         i: 111,
         id: ArrayString::from("G1").unwrap(),
-        status: true,
+        status: 1,
         area: 227,
         zone: 1,
         pl: -0.004,
@@ -51,7 +51,7 @@ fn test_parse_raw_loads() {
         Load {
             i: 111,
             id: ArrayString::from("G1").unwrap(),
-            status: true,
+            status: 1,
             area: 227,
             zone: 1,
             pl: -0.004,
@@ -67,7 +67,7 @@ fn test_parse_raw_loads() {
         Load {
             i: 113,
             id: ArrayString::from(" G2").unwrap(),
-            status: true,
+            status: 1,
             area: 227,
             zone: 1,
             pl: 0.345,
