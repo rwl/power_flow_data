@@ -4,11 +4,12 @@ version = "0.1.0"
 edition = "2021"
 description = "AC power flow based on KINSOL from SUNDIALS"
 license = "MIT"
+repository = "https://github.com/rwl/power_flow_data"
 
 [dependencies]
 anyhow = "1"
 num-complex = "0.4"
-sundials = "0.2"
+sundials = { version = "0.3", features = ["faer"] }
 #sundials = { path = "../../sundials" }
 sparsetools = "0.2.4"
 #sparsetools = { path = "../../sparsetools" }
